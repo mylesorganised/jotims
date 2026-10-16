@@ -1,0 +1,222 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { Camera, FileText, Film, LoaderCircle, Upload, X } from "lucide-react";
+import { deleteUploadAction, recordBlobUploadAction, type RecordedUpload } from "@/app/actions/scout";
+import { fileSize } from "@/lib/format";
+import { Callout, cn } from "./ui";
+
+export type UploadConfig = {
+  mode: "local" | "blob" | "none";
+  blobAccess: "private" | "public";
+  scoutId: string;
+  badgeId: string;
+  taskId: string;
+};
+
+/** Phone photos can be 5–10 MB; shrink big images before uploading. */
+async function shrinkImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") return file;
+  if (file.size < 1.5 * 1024 * 1024) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 2000 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
+async function sendFile(file: File, fieldId: string, config: UploadConfig): Promise<RecordedUpload> {
+  if (config.mode === "blob") {
+    const { upload } = await import("@vercel/blob/client");
+    const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-80) || "file";
+    const result = await upload(`evidence/${config.scoutId}/${config.badgeId}/${config.taskId}/${safe}`, file, {
+      access: config.blobAccess,
+      handleUploadUrl: "/api/upload/blob",
+      clientPayload: JSON.stringify({ badgeId: config.badgeId, taskId: config.taskId, fieldId }),
+      multipart: file.size > 8 * 1024 * 1024,
+    });
+    const recorded = await recordBlobUploadAction({
+      pathname: result.pathname,
+      fileName: file.name,
+      badgeId: config.badgeId,
+      taskId: config.taskId,
+      fieldId,
+    });
+    if (!recorded.ok) throw new Error(recorded.error);
+    return recorded.upload;
+  }
+  const form = new FormData();
+  form.set("file", file);
+  form.set("badgeId", config.badgeId);
+  form.set("taskId", config.taskId);
+  form.set("fieldId", fieldId);
+  const res = await fetch("/api/upload", { method: "POST", body: form });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error ?? "Upload failed");
+  return json.upload;
+}
+
+export function FilePreview({ file, onRemove }: { file: RecordedUpload; onRemove?: () => void }) {
+  const src = `/api/files/${file.id}`;
+  const isImage = file.contentType.startsWith("image/");
+  const isVideo = file.contentType.startsWith("video/");
+  return (
+    <div className="group relative overflow-hidden rounded-xl bg-white ring-1 ring-line">
+      {isImage ? (
+        <a href={src} target="_blank" rel="noreferrer" className="block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt={file.fileName} className="h-32 w-full object-cover" loading="lazy" />
+        </a>
+      ) : (
+        <a href={src} target="_blank" rel="noreferrer" className="flex h-32 flex-col items-center justify-center gap-2 bg-zinc-50 p-3 text-center">
+          {isVideo ? <Film className="size-8 text-brand-500" /> : <FileText className="size-8 text-brand-500" />}
+          <span className="line-clamp-2 text-xs font-semibold break-all">{file.fileName}</span>
+        </a>
+      )}
+      <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs text-muted">
+        <span className="truncate">{fileSize(file.size)}</span>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="grid size-6 place-items-center rounded-full hover:bg-rose-50 hover:text-rose-600"
+            aria-label={`Remove ${file.fileName}`}
+          >
+            <X className="size-4" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function Uploader({
+  fieldId,
+  accept,
+  multiple,
+  files,
+  onChange,
+  disabled,
+  config,
+}: {
+  fieldId: string;
+  accept?: string;
+  multiple?: boolean;
+  files: RecordedUpload[];
+  onChange: (files: RecordedUpload[]) => void;
+  disabled?: boolean;
+  config: UploadConfig;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  if (config.mode === "none") {
+    return (
+      <Callout tone="info">
+        File uploads aren&apos;t switched on yet. Show your work to a leader instead, and carry on.
+      </Callout>
+    );
+  }
+
+  const add = async (list: FileList | File[]) => {
+    setError(null);
+    const chosen = Array.from(list).slice(0, multiple ? 10 : 1);
+    setBusy((b) => b + chosen.length);
+    let current = multiple ? files : [];
+    if (!multiple && files[0]) {
+      await deleteUploadAction(files[0].id);
+    }
+    for (const raw of chosen) {
+      try {
+        const uploaded = await sendFile(await shrinkImage(raw), fieldId, config);
+        current = [...current, uploaded];
+        onChange(current);
+      } catch (e) {
+        setError((e as Error).message || "That didn't upload. Try again?");
+      } finally {
+        setBusy((b) => b - 1);
+      }
+    }
+  };
+
+  const remove = async (id: string) => {
+    const result = await deleteUploadAction(id);
+    if (result.ok) onChange(files.filter((f) => f.id !== id));
+    else setError(result.error);
+  };
+
+  const canAdd = !disabled && (multiple || files.length === 0);
+  const imageOnly = accept === "image/*";
+
+  return (
+    <div className="space-y-3">
+      {files.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {files.map((f) => (
+            <FilePreview key={f.id} file={f} onRemove={disabled ? undefined : () => remove(f.id)} />
+          ))}
+        </div>
+      )}
+      {(canAdd || busy > 0) && (
+        <button
+          type="button"
+          disabled={busy > 0}
+          onClick={() => input.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            if (e.dataTransfer.files.length) void add(e.dataTransfer.files);
+          }}
+          className={cn(
+            "flex w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-6 text-center transition",
+            dragging ? "border-brand-400 bg-brand-50" : "border-brand-200 bg-white hover:border-brand-400 hover:bg-brand-50/50",
+          )}
+        >
+          {busy > 0 ? (
+            <>
+              <LoaderCircle className="size-7 animate-spin text-brand-500" />
+              <span className="font-bold text-brand-700">Uploading…</span>
+            </>
+          ) : (
+            <>
+              <span className="flex gap-2 text-brand-500">
+                {imageOnly ? <Camera className="size-7" /> : <Upload className="size-7" />}
+              </span>
+              <span className="font-bold text-brand-700">
+                {files.length ? "Add another" : imageOnly ? "Add a photo or screenshot" : "Add a file"}
+              </span>
+              <span className="text-xs text-muted">Tap to choose, or drag it here</span>
+            </>
+          )}
+        </button>
+      )}
+      <input
+        ref={input}
+        type="file"
+        hidden
+        accept={accept}
+        multiple={multiple}
+        onChange={(e) => {
+          if (e.target.files?.length) void add(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      {error && <Callout tone="error">{error}</Callout>}
+    </div>
+  );
+}
