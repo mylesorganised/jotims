@@ -8,14 +8,14 @@ import { badgeName, badgesForSection, getBadge, getTask, type BadgeFamily } from
 import { requireScout } from "@/lib/auth";
 import { getScoutOverview, requestTime } from "@/lib/data";
 import { timeAgo } from "@/lib/format";
-import { badgeProgress } from "@/lib/progress";
+import { badgeProgress, lockedBy } from "@/lib/progress";
 
 export const metadata: Metadata = { title: "My badges" };
 
 const FAMILY_TITLES: Record<BadgeFamily, { title: string; blurb: string }> = {
   communicator: { title: "Communicator", blurb: "Your section's Communicator badge, perfect for JOTA-JOTI." },
-  "digital-citizen": { title: "Digital Citizen", blurb: "Staying safe, kind and smart online. Do the stages in order." },
-  "digital-maker": { title: "Digital Maker", blurb: "Make art, programs and gadgets with code." },
+  "digital-citizen": { title: "Digital Citizen", blurb: "Staying safe, kind and smart online. Each stage unlocks when you finish the one before." },
+  "digital-maker": { title: "Digital Maker", blurb: "Make art, programs and gadgets with code. Each stage unlocks when you finish the one before." },
 };
 
 export default async function HomePage() {
@@ -26,6 +26,7 @@ export default async function HomePage() {
   const badges = badgesForSection(scout.section).map((badge) => ({
     badge,
     progress: badgeProgress(badge, statuses[badge.id] ?? {}, awards.has(badge.id)),
+    lock: lockedBy(badge, statuses, (id) => awards.has(id)),
   }));
 
   const tasksDone = rows.filter((r) => r.status === "done").length;
@@ -139,8 +140,8 @@ export default async function HomePage() {
             <p className="text-sm text-muted">{FAMILY_TITLES[family].blurb}</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map(({ badge, progress }) => (
-              <BadgeCard key={badge.id} badge={badge} progress={progress} section={scout.section} />
+            {items.map(({ badge, progress, lock }) => (
+              <BadgeCard key={badge.id} badge={badge} progress={progress} section={scout.section} lockedBy={lock} />
             ))}
           </div>
         </section>

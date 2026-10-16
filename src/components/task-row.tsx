@@ -1,11 +1,37 @@
 import Link from "next/link";
-import { ChevronRight, Clock, ShieldCheck, Users } from "lucide-react";
+import { ChevronRight, Clock, Lock, ShieldCheck, Users } from "lucide-react";
 import type { BadgeDef, TaskDef } from "@/content/types";
 import type { TaskState } from "@/lib/progress";
 import { TaskStatusPill } from "./status";
 import { cn } from "./ui";
 
-export function TaskRow({ badge, task, state, compact = false }: { badge: BadgeDef; task: TaskDef; state: TaskState; compact?: boolean }) {
+export function TaskRow({
+  badge,
+  task,
+  state,
+  compact = false,
+  locked = false,
+}: {
+  badge: BadgeDef;
+  task: TaskDef;
+  state: TaskState;
+  compact?: boolean;
+  locked?: boolean;
+}) {
+  if (locked) {
+    return (
+      <div className="flex items-center gap-3.5 rounded-2xl bg-zinc-50 p-3.5 ring-1 ring-line sm:p-4" aria-disabled>
+        <span className={cn("grid shrink-0 place-items-center rounded-xl bg-zinc-100 text-2xl grayscale", compact ? "size-11" : "size-12")}>
+          {task.emoji}
+        </span>
+        <span className="min-w-0 flex-1 text-zinc-500">
+          <span className="block font-extrabold leading-snug">{task.title}</span>
+          {!compact && <span className="block text-sm">{task.summary}</span>}
+        </span>
+        <Lock className="size-5 shrink-0 text-zinc-400" />
+      </div>
+    );
+  }
   return (
     <Link
       href={`/badges/${badge.id}/${task.id}`}

@@ -1,6 +1,7 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { getCurrentScout } from "@/lib/auth";
+import { badgeLockFor, lockMessage } from "@/lib/locks";
 import { MAX_UPLOAD_BYTES, uploadMode, validUploadTarget } from "@/lib/uploads";
 
 // Issues short-lived tokens so the browser can upload evidence straight to
@@ -18,9 +19,10 @@ export async function POST(request: Request) {
         const scout = await getCurrentScout();
         if (!scout) throw new Error("Please log in again.");
         const payload = JSON.parse(clientPayload ?? "{}") as { badgeId?: string; taskId?: string; fieldId?: string };
-        if (!validUploadTarget(payload.badgeId ?? "", payload.taskId ?? "", payload.fieldId ?? "")) {
-          throw new Error("Unknown upload field.");
-        }
+        const target = validUploadTarget(payload.badgeId ?? "", payload.taskId ?? "", payload.fieldId ?? "");
+        if (!target) throw new Error("Unknown upload field.");
+        const before = await badgeLockFor(scout.id, target.badge);
+        if (before) throw new Error(lockMessage(before));
         if (!pathname.startsWith(`evidence/${scout.id}/`)) throw new Error("Invalid file path.");
         return {
           addRandomSuffix: true,

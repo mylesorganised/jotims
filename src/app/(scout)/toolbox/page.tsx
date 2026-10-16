@@ -35,7 +35,7 @@ export default function ToolboxPage() {
               key={s.file}
               href={`/resources/${s.file}`}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="flex items-center gap-3 rounded-xl bg-white p-3 ring-1 ring-line transition hover:ring-brand-300"
             >
               <FileText className="size-5 text-brand-500" />

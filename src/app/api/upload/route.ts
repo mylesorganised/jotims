@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentScout } from "@/lib/auth";
 import { getTaskRecord } from "@/lib/data";
+import { badgeLockFor, lockMessage } from "@/lib/locks";
 import {
   ensureProgressRow,
   MAX_UPLOAD_BYTES,
@@ -30,6 +31,9 @@ export async function POST(request: Request) {
   if (!target) return NextResponse.json({ error: "Unknown upload field." }, { status: 400 });
   if (!(file instanceof File) || file.size === 0) return NextResponse.json({ error: "No file received." }, { status: 400 });
   if (file.size > MAX_UPLOAD_BYTES) return NextResponse.json({ error: "That file is too big (50 MB max)." }, { status: 413 });
+
+  const before = await badgeLockFor(scout.id, target.badge);
+  if (before) return NextResponse.json({ error: lockMessage(before) }, { status: 409 });
 
   const record = await getTaskRecord(scout.id, badgeId, taskId);
   if (record?.status === "submitted" || (record?.status === "done" && target.task.review === "leader")) {

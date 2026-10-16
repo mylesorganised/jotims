@@ -437,6 +437,7 @@ export const digitalMaker2: BadgeDef = {
   ...common,
   id: "digital-maker-2",
   stage: 2,
+  prerequisite: "digital-maker-1",
   recommendedFor: ["cubs", "scouts"],
   tagline: "Animated art, a leaf identifier and Hour of Code.",
   intro: "Complete every task to achieve Stage 2.",

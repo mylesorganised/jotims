@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito_Sans } from "next/font/google";
+import { NewTabLinks } from "@/components/new-tab-links";
 import "./globals.css";
 
 const nunito = Nunito_Sans({
@@ -22,7 +23,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en-GB" className={`${nunito.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        {children}
+        <NewTabLinks />
+      </body>
     </html>
   );
 }

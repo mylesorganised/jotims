@@ -140,6 +140,7 @@ export type BadgeDef = {
   /** the printable sheet this badge is based on */
   sheet?: LinkRef;
   officialUrl: string;
+  /** badge id that must be finished (all tasks done) before this one can be started */
   prerequisite?: string;
   tasks: TaskDef[];
   parts: PartDef[];

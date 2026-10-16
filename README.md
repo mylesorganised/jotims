@@ -10,7 +10,11 @@ Badges included (built from the group's own sheets):
 | --- | --- | --- |
 | Communicator | Beavers, Cubs and Scouts each get their own version | Beavers: 5 tasks. Cubs: 4 tasks + 3 of 4 extras. Scouts: 3 of 4 subjects |
 | Digital Citizen Stages 1–3 | Everyone | Every task in the stage |
-| Digital Maker Stages 1–3 | Everyone | Every task in the stage (Stage 3 expects Stage 2 first) |
+| Digital Maker Stages 1–3 | Everyone | Every task in the stage |
+
+Stages unlock in order: Stage 2 opens once every Stage 1 task is done, and
+Stage 3 once Stage 2 is. If someone did an earlier stage at another time, a
+leader can tick it off or sign it off on their page, which unlocks the next one.
 
 ## What young people get
 
@@ -26,6 +30,8 @@ Badges included (built from the group's own sheets):
   the secret messages). Photos and screenshots upload straight from a phone or
   laptop, and big photos are shrunk first.
 - **"Ask for help"** puts their hand up on the leaders' dashboard.
+- **Links never take them out of the app**: websites, printable sheets and
+  uploaded files always open in a new tab.
 - Tasks are either **"You tick this off"** (done when they finish) or **"Leader
   checks this"** (waits for a leader to approve).
 

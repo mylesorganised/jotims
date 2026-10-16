@@ -437,11 +437,22 @@ function StepView({
         <ol className="space-y-2">
           {step.todo.map((item, i) => (
             <li key={i}>
-              <button
-                type="button"
-                onClick={() => tick(i)}
+              {/* A div rather than a button, so the text can hold links (which mustn't tick the row). */}
+              <div
+                role="checkbox"
+                aria-checked={Boolean(ticks[i])}
+                tabIndex={0}
+                onClick={(e) => {
+                  if (!(e.target as HTMLElement).closest("a")) tick(i);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === " " || e.key === "Enter") {
+                    e.preventDefault();
+                    tick(i);
+                  }
+                }}
                 className={cn(
-                  "flex w-full items-start gap-3 rounded-xl p-3 text-left transition",
+                  "flex w-full cursor-pointer items-start gap-3 rounded-xl p-3 text-left transition focus-visible:outline-2 focus-visible:outline-brand-500",
                   ticks[i] ? "bg-emerald-50" : "bg-zinc-50 hover:bg-brand-50/60",
                 )}
               >
@@ -456,7 +467,7 @@ function StepView({
                 <span className={cn("pt-0.5 text-[15px] leading-relaxed", ticks[i] && "text-zinc-500")}>
                   <RichText text={item} />
                 </span>
-              </button>
+              </div>
             </li>
           ))}
           <li className="pl-1 text-xs font-semibold text-muted">Tap each one when you&apos;ve done it.</li>
@@ -508,7 +519,7 @@ function StepView({
                 key={link.url}
                 href={link.url}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="group flex items-center gap-3 rounded-xl bg-white p-3 ring-1 ring-brand-200 transition hover:bg-brand-50 hover:ring-brand-400"
               >
                 <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-500 text-white">

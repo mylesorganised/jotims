@@ -44,7 +44,7 @@ export default async function ScoutsPage() {
         title="Young people"
         subtitle={`${rows.length} on the list. They log in with their first name, last name and date of birth.`}
         actions={
-          <a href="/api/admin/export" className={buttonClass("secondary", "sm")}>
+          <a href="/api/admin/export" download className={buttonClass("secondary", "sm")}>
             <Download className="size-4" /> Export CSV
           </a>
         }

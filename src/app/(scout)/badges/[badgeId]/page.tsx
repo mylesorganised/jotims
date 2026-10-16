@@ -10,7 +10,8 @@ import { badgeName, getBadge, getTask, groupParts } from "@/content";
 import { requireScout } from "@/lib/auth";
 import { getScoutOverview } from "@/lib/data";
 import { formatDate } from "@/lib/format";
-import { badgeProgress } from "@/lib/progress";
+import { badgeProgress, lockedBy } from "@/lib/progress";
+import { LockedNotice } from "@/components/locked-notice";
 
 export async function generateMetadata({ params }: PageProps<"/badges/[badgeId]">): Promise<Metadata> {
   const badge = getBadge((await params).badgeId);
@@ -27,10 +28,7 @@ export default async function BadgePage({ params }: PageProps<"/badges/[badgeId]
   const mine = statuses[badge.id] ?? {};
   const award = awards.get(badge.id);
   const progress = badgeProgress(badge, mine, Boolean(award));
-  const prerequisite = badge.prerequisite ? getBadge(badge.prerequisite) : undefined;
-  const prereqDone = prerequisite
-    ? awards.has(prerequisite.id) || badgeProgress(prerequisite, statuses[prerequisite.id] ?? {}, false).state === "ready"
-    : true;
+  const lock = lockedBy(badge, statuses, (id) => awards.has(id));
 
   return (
     <div className="space-y-8">
@@ -48,11 +46,11 @@ export default async function BadgePage({ params }: PageProps<"/badges/[badgeId]
             <p className="mt-3 max-w-2xl text-[15px] leading-relaxed">{badge.intro}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               {badge.sheet && (
-                <a href={badge.sheet.url} target="_blank" rel="noreferrer" className={buttonClass("secondary", "sm")}>
+                <a href={badge.sheet.url} target="_blank" rel="noopener noreferrer" className={buttonClass("secondary", "sm")}>
                   <Printer className="size-4" /> {badge.sheet.label}
                 </a>
               )}
-              <a href={badge.officialUrl} target="_blank" rel="noreferrer" className={buttonClass("ghost", "sm")}>
+              <a href={badge.officialUrl} target="_blank" rel="noopener noreferrer" className={buttonClass("ghost", "sm")}>
                 <ExternalLink className="size-4" /> Official badge page
               </a>
             </div>
@@ -82,15 +80,7 @@ export default async function BadgePage({ params }: PageProps<"/badges/[badgeId]
           A leader will now check your work and sign off your badge.
         </Callout>
       )}
-      {!prereqDone && prerequisite && (
-        <Callout tone="tip" title={`Finish ${badgeName(prerequisite)} first`}>
-          You need to have done {badgeName(prerequisite)} before this stage.{" "}
-          <Link href={`/badges/${prerequisite.id}`} className="font-bold underline">
-            Go to {badgeName(prerequisite)}
-          </Link>
-          . Already did it at another time? Tell a leader.
-        </Callout>
-      )}
+      {lock && <LockedNotice before={lock} />}
 
       <div className="space-y-8">
         {groupParts(badge.parts).map((part, i) => {
@@ -98,7 +88,7 @@ export default async function BadgePage({ params }: PageProps<"/badges/[badgeId]
             return (
               <section key={i} className="space-y-3">
                 {part.taskIds.map((taskId) => (
-                  <TaskRow key={taskId} badge={badge} task={getTask(badge, taskId)!} state={mine[taskId] ?? "todo"} />
+                  <TaskRow key={taskId} badge={badge} task={getTask(badge, taskId)!} state={mine[taskId] ?? "todo"} locked={Boolean(lock)} />
                 ))}
               </section>
             );
@@ -140,7 +130,7 @@ export default async function BadgePage({ params }: PageProps<"/badges/[badgeId]
                       <div className="space-y-2">
                         {option.taskIds.map((taskId) => {
                           const task = getTask(badge, taskId)!;
-                          return <TaskRow key={taskId} badge={badge} task={task} state={mine[taskId] ?? "todo"} compact />;
+                          return <TaskRow key={taskId} badge={badge} task={task} state={mine[taskId] ?? "todo"} compact locked={Boolean(lock)} />;
                         })}
                       </div>
                     </Card>

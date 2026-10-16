@@ -36,7 +36,7 @@ export default async function BadgeTrackerPage({ searchParams }: PageProps<"/adm
         title="Badge tracker"
         subtitle="Everyone's badges at a glance. Click a cell to see that young person's work."
         actions={
-          <a href="/api/admin/export" className={buttonClass("secondary", "sm")}>
+          <a href="/api/admin/export" download className={buttonClass("secondary", "sm")}>
             <Download className="size-4" /> Export CSV
           </a>
         }

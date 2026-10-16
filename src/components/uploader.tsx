@@ -71,12 +71,12 @@ export function FilePreview({ file, onRemove }: { file: RecordedUpload; onRemove
   return (
     <div className="group relative overflow-hidden rounded-xl bg-white ring-1 ring-line">
       {isImage ? (
-        <a href={src} target="_blank" rel="noreferrer" className="block">
+        <a href={src} target="_blank" rel="noopener noreferrer" className="block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={src} alt={file.fileName} className="h-32 w-full object-cover" loading="lazy" />
         </a>
       ) : (
-        <a href={src} target="_blank" rel="noreferrer" className="flex h-32 flex-col items-center justify-center gap-2 bg-zinc-50 p-3 text-center">
+        <a href={src} target="_blank" rel="noopener noreferrer" className="flex h-32 flex-col items-center justify-center gap-2 bg-zinc-50 p-3 text-center">
           {isVideo ? <Film className="size-8 text-brand-500" /> : <FileText className="size-8 text-brand-500" />}
           <span className="line-clamp-2 text-xs font-semibold break-all">{file.fileName}</span>
         </a>

@@ -9,6 +9,7 @@ import { clearScoutSession, requireScout, setScoutSession, type CurrentScout } f
 import { createScout, findScoutByLogin, getTaskRecord, getTaskUploads, logActivity, touchScout } from "@/lib/data";
 import { getDb, schema } from "@/lib/db";
 import type { Answers } from "@/lib/db/schema";
+import { badgeLockFor, lockMessage } from "@/lib/locks";
 import { getSettings } from "@/lib/settings";
 import { removeStoredFile } from "@/lib/storage";
 import { ensureProgressRow, recordUpload, uploadMode, validUploadTarget } from "@/lib/uploads";
@@ -112,7 +113,9 @@ export async function saveAnswersAction(
   stepReached: number,
 ): Promise<SaveResult> {
   const scout = await requireScout();
-  const { task } = lookup(badgeId, taskId);
+  const { badge, task } = lookup(badgeId, taskId);
+  const before = await badgeLockFor(scout.id, badge);
+  if (before) return { ok: false, error: lockMessage(before) };
   const existing = await getTaskRecord(scout.id, badgeId, taskId);
   if (isLocked(task, existing?.status)) return { ok: false, error: "This task is locked while a leader looks at it." };
   const step = Math.max(0, Math.min(task.steps.length, Math.floor(Number(stepReached) || 0)));
@@ -124,7 +127,9 @@ export type SubmitResult = { ok: true; status: "done" | "submitted" } | { ok: fa
 
 export async function submitTaskAction(badgeId: string, taskId: string, rawAnswers: unknown): Promise<SubmitResult> {
   const scout = await requireScout();
-  const { task } = lookup(badgeId, taskId);
+  const { badge, task } = lookup(badgeId, taskId);
+  const before = await badgeLockFor(scout.id, badge);
+  if (before) return { ok: false, error: lockMessage(before) };
   const existing = await getTaskRecord(scout.id, badgeId, taskId);
   if (isLocked(task, existing?.status)) return { ok: false, error: "This task has already been sent to a leader." };
 
@@ -184,7 +189,8 @@ export async function reopenTaskAction(badgeId: string, taskId: string) {
 
 export async function requestHelpAction(badgeId: string, taskId: string, message: string) {
   const scout = await requireScout();
-  const { task } = lookup(badgeId, taskId);
+  const { badge, task } = lookup(badgeId, taskId);
+  if (await badgeLockFor(scout.id, badge)) return;
   const db = await getDb();
   const now = new Date();
   const helpMessage = message.trim().slice(0, 500) || null;
@@ -252,7 +258,10 @@ export async function recordBlobUploadAction(input: {
 }): Promise<{ ok: true; upload: RecordedUpload } | { ok: false; error: string }> {
   const scout = await requireScout();
   if (uploadMode() !== "blob") return { ok: false, error: "Blob uploads are not enabled" };
-  if (!validUploadTarget(input.badgeId, input.taskId, input.fieldId)) return { ok: false, error: "Unknown upload field" };
+  const target = validUploadTarget(input.badgeId, input.taskId, input.fieldId);
+  if (!target) return { ok: false, error: "Unknown upload field" };
+  const before = await badgeLockFor(scout.id, target.badge);
+  if (before) return { ok: false, error: lockMessage(before) };
   if (!input.pathname.startsWith(`evidence/${scout.id}/`)) return { ok: false, error: "Not your file" };
 
   const { head } = await import("@vercel/blob");

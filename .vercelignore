@@ -1,0 +1,10 @@
+# Keep local-only files out of `vercel deploy` uploads
+.env*
+!.env.example
+.data
+.next
+node_modules
+jotistuff.zip
+.agents
+.claude
+skills-lock.json

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Award, CircleCheck, Eye, RotateCcw, Trash2, Undo2 } from "lucide-react";
+import { ArrowLeft, Award, CircleCheck, Eye, Lock, RotateCcw, Trash2, Undo2 } from "lucide-react";
 import {
   deleteScoutAction,
   leaderMarkDoneAction,
@@ -18,7 +18,7 @@ import { BADGES, badgeName, getTask, groupParts, type BadgeDef, type TaskDef } f
 import { requireLeader } from "@/lib/auth";
 import { ageOn, getScout, getScoutActivity, getScoutOverview, requestTime, type ProgressRow } from "@/lib/data";
 import { formatDate, timeAgo } from "@/lib/format";
-import { badgeProgress } from "@/lib/progress";
+import { badgeProgress, lockedBy } from "@/lib/progress";
 import { formatDob } from "@/lib/validate";
 
 export const metadata: Metadata = { title: "Young person" };
@@ -81,6 +81,7 @@ export default async function ScoutDetailPage({ params }: PageProps<"/admin/scou
             statuses={statuses[badge.id] ?? {}}
             award={awards.get(badge.id)}
             byTask={byTask}
+            lock={lockedBy(badge, statuses, (b) => awards.has(b))}
           />
         ))}
       </div>
@@ -128,6 +129,7 @@ function BadgeSection({
   statuses,
   award,
   byTask,
+  lock,
 }: {
   badge: BadgeDef;
   scoutId: string;
@@ -135,6 +137,7 @@ function BadgeSection({
   statuses: Record<string, ProgressRow["status"]>;
   award: { signedOffBy: string; signedOffAt: Date; note: string | null } | undefined;
   byTask: Map<string, ProgressRow>;
+  lock: BadgeDef | null;
 }) {
   const progress = badgeProgress(badge, statuses, Boolean(award));
   const counted = new Set(progress.requiredTaskIds);
@@ -183,6 +186,11 @@ function BadgeSection({
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-extrabold">{badgeName(badge)}</h2>
             <BadgeStatusPill state={progress.state} />
+            {lock && !award && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-bold text-zinc-600">
+                <Lock className="size-3.5" /> Locked until {badgeName(lock)} is done
+              </span>
+            )}
           </div>
           <div className="mt-2 flex items-center gap-3">
             <ProgressBar value={progress.percent} color={award ? "#059669" : badge.ring} className="max-w-xs" />

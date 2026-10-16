@@ -1,3 +1,4 @@
+import { getBadge } from "@/content";
 import type { BadgeDef } from "@/content/types";
 import type { TaskStatus } from "@/lib/db/schema";
 
@@ -88,3 +89,18 @@ export const BADGE_STATE_LABEL: Record<BadgeState, string> = {
   ready: "Ready for sign-off",
   awarded: "Signed off",
 };
+
+/**
+ * A staged badge stays locked until the stage before it is finished: every
+ * task done, or signed off by a leader (e.g. it was done at another time).
+ * Returns the badge that has to be finished first, or null if unlocked.
+ */
+export function lockedBy(
+  badge: BadgeDef,
+  statuses: Record<string, Record<string, TaskState | undefined> | undefined>,
+  isAwarded: (badgeId: string) => boolean,
+): BadgeDef | null {
+  const before = badge.prerequisite ? getBadge(badge.prerequisite) : undefined;
+  if (!before || isAwarded(before.id)) return null;
+  return badgeProgress(before, statuses[before.id] ?? {}, false).state === "ready" ? null : before;
+}
