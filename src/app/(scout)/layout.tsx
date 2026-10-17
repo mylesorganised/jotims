@@ -5,6 +5,7 @@ import { logoutAction } from "@/app/actions/scout";
 import { Logo } from "@/components/logo";
 import { HelperProvider } from "@/components/helper/helper";
 import { NavLink } from "@/components/nav-link";
+import { NotificationCenter } from "@/components/notifications/notification-center";
 import { TourProvider } from "@/components/tour/tour";
 import { ButtonLink } from "@/components/ui";
 import { getCurrentScout } from "@/lib/auth";
@@ -26,6 +27,7 @@ export default function ScoutLayout({ children }: LayoutProps<"/">) {
               My badges
             </NavLink>
             <NavLink href="/toolbox" tour="nav-toolbox">Code toolbox</NavLink>
+            <NavLink href="/chat" tour="nav-chat">JOTI chat</NavLink>
           </nav>
           <div className="ml-auto">
             <Suspense fallback={<div className="h-9 w-28" />}>
@@ -38,6 +40,7 @@ export default function ScoutLayout({ children }: LayoutProps<"/">) {
             My badges
           </NavLink>
           <NavLink href="/toolbox" tour="nav-toolbox">Code toolbox</NavLink>
+          <NavLink href="/chat" tour="nav-chat">JOTI chat</NavLink>
         </nav>
       </header>
       <HelperProvider mode="scout" enabled={helperEnabled()}>
@@ -59,6 +62,7 @@ async function ScoutChip() {
   }
   return (
     <div className="flex items-center gap-2">
+      <NotificationCenter scoutId={scout.id} />
       <span className="hidden text-right leading-tight sm:block">
         <span className="block text-sm font-bold">
           {scout.firstName} {scout.lastName}

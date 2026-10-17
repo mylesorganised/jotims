@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 import { Save, Upload, UserPlus } from "lucide-react";
 import {
   addScoutAction,
@@ -147,7 +147,19 @@ export function EditScoutForm({
   );
 }
 
-export function SettingsForm({ settings }: { settings: Settings }) {
+function Toggle({ name, checked, disabled, title, children }: { name: string; checked: boolean; disabled?: boolean; title: string; children: ReactNode }) {
+  return (
+    <label className={`flex items-start gap-3 rounded-xl bg-canvas p-3.5 ring-1 ring-line ${disabled ? "opacity-60" : ""}`}>
+      <input type="checkbox" name={name} defaultChecked={checked} disabled={disabled} className="mt-1 size-4 accent-brand-500" />
+      <span>
+        <span className="block font-bold">{title}</span>
+        <span className="block text-sm text-muted">{children}</span>
+      </span>
+    </label>
+  );
+}
+
+export function SettingsForm({ settings, ai }: { settings: Settings; ai: { reviewer: boolean; writer: boolean } }) {
   const [state, action] = useActionState<FormState, FormData>(saveSettingsAction, {});
   return (
     <form action={action} className="space-y-5">
@@ -176,6 +188,41 @@ export function SettingsForm({ settings }: { settings: Settings }) {
           Group code
         </Label>
         <input id="groupCode" name="groupCode" defaultValue={settings.groupCode} autoComplete="off" className={inputClass} placeholder="e.g. RADIO26" />
+      </div>
+      <div>
+        <Label htmlFor="groupJid" hint="Optional. Your group's JOTA-JOTI Jamboree ID, from your JOTA-JOTI registration. Shown in the JOTI chat guide so young people can share it in the JID Exchange room.">
+          Group JID
+        </Label>
+        <input id="groupJid" name="groupJid" defaultValue={settings.groupJid} autoComplete="off" className={inputClass} placeholder="e.g. 6GB12X" />
+      </div>
+      <div className="space-y-3 border-t border-line pt-5" data-tour="settings-ai">
+        {ai.reviewer && <input type="hidden" name="aiShown" value="1" />}
+        <div>
+          <h3 className="text-lg font-extrabold">🤖 AI leader</h3>
+          <p className="text-sm text-muted">
+            {ai.reviewer
+              ? "Checks work as it comes in, so young people hear back in seconds. Everything it decides is logged, and you can always reopen a task or remove a sign-off."
+              : "Add JEV_API_KEY (TypeSafe) to switch the AI leader on."}
+            {ai.reviewer && !ai.writer && " Add OPENROUTER_API_KEY too for personal feedback and for reading screenshots."}
+          </p>
+        </div>
+        <Toggle name="aiReview" checked={settings.aiReview} disabled={!ai.reviewer} title="Review work sent to a leader">
+          Approves work that clearly meets the requirement, sends back work that clearly isn&apos;t finished (with kind, specific
+          feedback), and leaves anything unclear, worrying or containing personal details for you.
+        </Toggle>
+        <Toggle name="aiSignOff" checked={settings.aiSignOff} disabled={!ai.reviewer} title="Sign badges off when every task is done">
+          Checks the self-check tasks were done properly, then signs the badge off. If one clearly wasn&apos;t done, it reopens it
+          with feedback.
+        </Toggle>
+        <Toggle
+          name="aiApproveInPerson"
+          checked={settings.aiApproveInPerson}
+          disabled={!ai.reviewer}
+          title="Also approve tasks a leader would normally see or receive"
+        >
+          Off: for tasks like phone calls, talking to a leader or sending a leader a message, the AI only checks the written part and
+          leaves the final tick for a leader. On: it approves those from the written answers alone.
+        </Toggle>
       </div>
       <SubmitButton>
         <Save className="size-4" /> Save settings

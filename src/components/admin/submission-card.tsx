@@ -2,11 +2,24 @@ import Link from "next/link";
 import { ChevronRight, Clock, Users } from "lucide-react";
 import { badgeName, getBadge, getTask } from "@/content";
 import type { ProgressRow, ScoutRow } from "@/lib/data";
+import type { schema } from "@/lib/db";
 import { timeAgo } from "@/lib/format";
 import { BadgeEmblem } from "../badge-emblem";
 import { SectionPill, TaskStatusPill } from "../status";
+import { AiDecisionPill } from "./ai-review-card";
 
-export function SubmissionCard({ progress, scout, now }: { progress: ProgressRow; scout: ScoutRow; now: number }) {
+export function SubmissionCard({
+  progress,
+  scout,
+  now,
+  ai,
+}: {
+  progress: ProgressRow;
+  scout: ScoutRow;
+  now: number;
+  /** the AI leader's latest look at it, if any */
+  ai?: typeof schema.aiReviews.$inferSelect;
+}) {
   const badge = getBadge(progress.badgeId);
   const task = badge && getTask(badge, progress.taskId);
   if (!badge || !task) return null;
@@ -30,12 +43,14 @@ export function SubmissionCard({ progress, scout, now }: { progress: ProgressRow
           <span className="inline-flex items-center gap-1">
             <Clock className="size-3.5" /> {timeAgo(progress.submittedAt ?? progress.updatedAt, now)}
           </span>
-          {task.review === "leader" && (
+          {task.review === "leader" && !ai && (
             <span className="inline-flex items-center gap-1 text-amber-700">
               <Users className="size-3.5" /> Needs a leader
             </span>
           )}
+          {ai && <AiDecisionPill decision={ai.decision} />}
         </div>
+        {ai && progress.status === "submitted" && <p className="mt-1 line-clamp-2 text-xs text-muted">{ai.reason}</p>}
       </div>
       <TaskStatusPill state={progress.status} short />
       <ChevronRight className="size-5 text-zinc-300 group-hover:text-brand-500" />

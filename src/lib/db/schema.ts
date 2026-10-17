@@ -121,6 +121,38 @@ export const helperMessages = pgTable("helper_messages", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Messages for young people: approvals, changes requested, badges signed off. */
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  scoutId: text("scout_id")
+    .notNull()
+    .references(() => scouts.id, { onDelete: "cascade" }),
+  kind: text("kind").$type<"approved" | "changes" | "awarded" | "help">().notNull(),
+  title: text("title").notNull(),
+  body: text("body"),
+  href: text("href"),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** What the AI reviewer decided for a submission, and why (for leaders to audit). */
+export const aiReviews = pgTable("ai_reviews", {
+  id: serial("id").primaryKey(),
+  progressId: text("progress_id")
+    .notNull()
+    .references(() => taskProgress.id, { onDelete: "cascade" }),
+  scoutId: text("scout_id")
+    .notNull()
+    .references(() => scouts.id, { onDelete: "cascade" }),
+  /** see Decision in lib/ai/reviewer.ts */
+  decision: text("decision").notNull(),
+  reason: text("reason").notNull(),
+  scores: jsonb("scores").$type<Record<string, number>>().notNull().default({}),
+  evidence: jsonb("evidence").$type<Record<string, string[]>>().notNull().default({}),
+  feedback: text("feedback"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: jsonb("value").notNull(),
@@ -214,6 +246,29 @@ export const bootstrapSql = [
     created_at timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS helper_messages_scout_idx ON helper_messages (scout_id, created_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS notifications (
+    id serial PRIMARY KEY,
+    scout_id text NOT NULL REFERENCES scouts(id) ON DELETE CASCADE,
+    kind text NOT NULL,
+    title text NOT NULL,
+    body text,
+    href text,
+    read_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS notifications_scout_idx ON notifications (scout_id, id DESC)`,
+  `CREATE TABLE IF NOT EXISTS ai_reviews (
+    id serial PRIMARY KEY,
+    progress_id text NOT NULL REFERENCES task_progress(id) ON DELETE CASCADE,
+    scout_id text NOT NULL REFERENCES scouts(id) ON DELETE CASCADE,
+    decision text NOT NULL,
+    reason text NOT NULL,
+    scores jsonb NOT NULL DEFAULT '{}'::jsonb,
+    evidence jsonb NOT NULL DEFAULT '{}'::jsonb,
+    feedback text,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS ai_reviews_progress_idx ON ai_reviews (progress_id, id DESC)`,
   `CREATE TABLE IF NOT EXISTS settings (
     key text PRIMARY KEY,
     value jsonb NOT NULL

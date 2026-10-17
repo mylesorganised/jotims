@@ -17,9 +17,14 @@ export default function WelcomePage() {
       />
       <header className="relative mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5">
         <Logo />
-        <Link href="/toolbox" className="text-sm font-bold text-muted hover:text-brand-600">
-          Code toolbox
-        </Link>
+        <nav className="flex items-center gap-4">
+          <Link href="/chat" className="text-sm font-bold text-muted hover:text-brand-600">
+            JOTI chat
+          </Link>
+          <Link href="/toolbox" className="text-sm font-bold text-muted hover:text-brand-600">
+            Code toolbox
+          </Link>
+        </nav>
       </header>
 
       <main className="relative mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-5 pb-16 pt-4 lg:grid-cols-[1.1fr_1fr] lg:gap-16">

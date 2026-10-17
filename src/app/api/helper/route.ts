@@ -2,7 +2,8 @@ import { getBadge, getTask } from "@/content";
 import { getCurrentScout, getLeader } from "@/lib/auth";
 import { getScoutOverview, logActivity, logHelperMessages } from "@/lib/data";
 import { getDb, schema } from "@/lib/db";
-import { leaderSystemPrompt, needsLeaderAttention, scoutSystemPrompt } from "@/lib/helper/knowledge";
+import { shouldFlagMessage } from "@/lib/ai/safeguarding";
+import { leaderSystemPrompt, scoutSystemPrompt } from "@/lib/helper/knowledge";
 import { helperEnabled, overHelperLimit, streamChat, type ChatMessage } from "@/lib/helper/openrouter";
 
 type Body = {
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
   let scoutId: string | null = null;
   let badgeId: string | undefined;
   let taskId: string | undefined;
+  let flagged: Promise<boolean> = Promise.resolve(false);
 
   if (body.mode === "leader") {
     const leader = await getLeader();
@@ -69,7 +71,12 @@ export async function POST(request: Request) {
       path: safePath(body.context?.path),
     });
 
-    if (needsLeaderAttention(question.content)) await flagForLeaders(scout.id, scout.firstName, badgeId, taskId);
+    // Checked alongside the reply so it doesn't slow the helper down.
+    const earlier = history.slice(0, -1).filter((m) => m.role === "user").map((m) => m.content);
+    flagged = shouldFlagMessage(question.content, earlier).then(async (worry) => {
+      if (worry) await flagForLeaders(scout.id, scout.firstName, badgeId, taskId);
+      return worry;
+    });
   }
 
   const origin = new URL(request.url).origin;
@@ -93,7 +100,7 @@ export async function POST(request: Request) {
       }
       if (scoutId) {
         await logHelperMessages([
-          { scoutId, badgeId, taskId, role: "user", content: question.content, flagged: needsLeaderAttention(question.content) ? 1 : 0 },
+          { scoutId, badgeId, taskId, role: "user", content: question.content, flagged: (await flagged.catch(() => false)) ? 1 : 0 },
           { scoutId, badgeId, taskId, role: "assistant", content: reply || "(no reply)" },
         ]).catch((error) => console.error("Could not log helper chat", error));
       }

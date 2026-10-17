@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Database, HardDrive } from "lucide-react";
 import { SettingsForm } from "@/components/admin/scout-forms";
 import { Callout, Card, PageTitle } from "@/components/ui";
+import { aiReviewerAvailable } from "@/lib/ai/reviewer";
 import { requireLeader } from "@/lib/auth";
+import { helperEnabled } from "@/lib/helper/openrouter";
 import { databaseMode } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { uploadMode } from "@/lib/uploads";
@@ -22,8 +24,8 @@ export default async function SettingsPage() {
       <PageTitle title="Settings" />
       <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
         <Card className="p-5 sm:p-6">
-          <h2 className="mb-4 text-lg font-extrabold">Logging in</h2>
-          <SettingsForm settings={settings} />
+          <h2 className="mb-4 text-lg font-extrabold">Event and logging in</h2>
+          <SettingsForm settings={settings} ai={{ reviewer: aiReviewerAvailable(), writer: helperEnabled() }} />
         </Card>
         <div className="space-y-4">
           <Card className="p-5">

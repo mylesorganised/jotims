@@ -68,7 +68,8 @@ const globalForDb = globalThis as unknown as { __jotiDb?: Promise<Database> };
  * pages never try to prerender database reads at build time.
  */
 export async function getDb(): Promise<Database> {
-  await connection();
+  // Outside a render (e.g. background work in after()) there's nothing to mark as dynamic.
+  await connection().catch(() => {});
   if (!globalForDb.__jotiDb) {
     globalForDb.__jotiDb = connect()
       .then(async (db) => {

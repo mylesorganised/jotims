@@ -3,7 +3,9 @@
 import { and, eq, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { getBadge, getTask, type TaskDef } from "@/content";
+import { maybeSignOffBadge, reviewSubmission } from "@/lib/ai/reviewer";
 import { missingFields, type Missing } from "@/lib/answers";
 import { clearScoutSession, requireScout, setScoutSession, type CurrentScout } from "@/lib/auth";
 import { createScout, findScoutByLogin, getTaskRecord, getTaskUploads, logActivity, touchScout } from "@/lib/data";
@@ -149,7 +151,7 @@ export async function submitTaskAction(badgeId: string, taskId: string, rawAnswe
   const status = task.review === "self" ? "done" : "submitted";
   const db = await getDb();
   const now = new Date();
-  await db
+  const [saved] = await db
     .update(schema.taskProgress)
     .set({ status, submittedAt: now, updatedAt: now, helpRequestedAt: null, helpMessage: null })
     .where(
@@ -158,7 +160,8 @@ export async function submitTaskAction(badgeId: string, taskId: string, rawAnswe
         eq(schema.taskProgress.badgeId, badgeId),
         eq(schema.taskProgress.taskId, taskId),
       ),
-    );
+    )
+    .returning({ id: schema.taskProgress.id });
   await logActivity({
     scoutId: scout.id,
     badgeId,
@@ -166,6 +169,11 @@ export async function submitTaskAction(badgeId: string, taskId: string, rawAnswe
     kind: status,
     actor: scout.firstName,
     message: status === "done" ? `finished "${task.title}"` : `sent "${task.title}" to a leader`,
+  });
+  // The AI leader looks at it after the response; the young person hears back through their notifications.
+  after(async () => {
+    if (status === "submitted") await reviewSubmission(saved.id, { auto: true });
+    else await maybeSignOffBadge(scout.id, badgeId);
   });
   refresh();
   return { ok: true, status };

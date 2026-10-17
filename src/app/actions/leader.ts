@@ -4,7 +4,9 @@ import { and, eq } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getBadge, getTask } from "@/content";
+import { after } from "next/server";
+import { badgeName, getBadge, getTask } from "@/content";
+import { aiReviewerAvailable, maybeSignOffBadge, reviewSubmission, reviewWaiting } from "@/lib/ai/reviewer";
 import { clearLeaderSession, requireLeader, setLeaderSession } from "@/lib/auth";
 import { createScout, getProgressById, logActivity, nameKey, tidyName } from "@/lib/data";
 import { getDb, schema } from "@/lib/db";
@@ -19,6 +21,7 @@ import {
   usernameProblem,
 } from "@/lib/leaders";
 import { clearLoginFailures, loginBlocked, noteLoginFailure, passwordProblem, verifyPassword } from "@/lib/passwords";
+import { notify } from "@/lib/notify";
 import { saveSettings } from "@/lib/settings";
 import { removeStoredFile } from "@/lib/storage";
 import { isSection, parseDob, parseSection } from "@/lib/validate";
@@ -145,6 +148,13 @@ export async function approveTaskAction(progressId: string, formData: FormData) 
     actor: leader.name,
     message: `approved "${task}" for ${row.scout.firstName}`,
   });
+  await notify(row.scout.id, {
+    kind: "approved",
+    title: `"${task}" is approved ✅`,
+    body: feedback ? `${leader.name}: ${feedback}` : `${leader.name} approved it.`,
+    href: `/badges/${row.progress.badgeId}/${row.progress.taskId}`,
+  });
+  after(() => maybeSignOffBadge(row.scout.id, row.progress.badgeId));
   refresh();
 }
 
@@ -167,6 +177,12 @@ export async function requestChangesAction(progressId: string, formData: FormDat
     actor: leader.name,
     message: `asked ${row.scout.firstName} to change "${taskTitle(row.progress.badgeId, row.progress.taskId)}"`,
   });
+  await notify(row.scout.id, {
+    kind: "changes",
+    title: `"${taskTitle(row.progress.badgeId, row.progress.taskId)}" needs a little more ✏️`,
+    body: `${leader.name}: ${feedback}`,
+    href: `/badges/${row.progress.badgeId}/${row.progress.taskId}`,
+  });
   refresh();
 }
 
@@ -184,6 +200,13 @@ export async function leaderMarkDoneAction(scoutId: string, badgeId: string, tas
       set: { status: "done", reviewedAt: now, reviewedBy: leader.name, helpRequestedAt: null, helpMessage: null, updatedAt: now },
     });
   await logActivity({ scoutId, badgeId, taskId, kind: "approved", actor: leader.name, message: `ticked off "${taskTitle(badgeId, taskId)}"` });
+  await notify(scoutId, {
+    kind: "approved",
+    title: `"${taskTitle(badgeId, taskId)}" is ticked off ✅`,
+    body: `${leader.name} marked it as done.`,
+    href: `/badges/${badgeId}/${taskId}`,
+  });
+  after(() => maybeSignOffBadge(scoutId, badgeId));
   refresh();
 }
 
@@ -220,12 +243,21 @@ export async function signOffBadgeAction(scoutId: string, badgeId: string, formD
   if (!badge) return;
   const note = String(formData.get("note") ?? "").trim() || null;
   const db = await getDb();
-  await db
+  const inserted = await db
     .insert(schema.badgeAwards)
     .values({ scoutId, badgeId, signedOffBy: leader.name, note })
-    .onConflictDoNothing();
-  const name = badge.stage ? `${badge.title} Stage ${badge.stage}` : badge.title;
+    .onConflictDoNothing()
+    .returning({ badgeId: schema.badgeAwards.badgeId });
+  const name = badgeName(badge);
   await logActivity({ scoutId, badgeId, kind: "awarded", actor: leader.name, message: `signed off the ${name} badge` });
+  if (inserted.length) {
+    await notify(scoutId, {
+      kind: "awarded",
+      title: `You've earned ${name}! 🎉`,
+      body: note ? `${leader.name}: ${note}` : `${leader.name} signed it off. Brilliant work!`,
+      href: `/badges/${badgeId}`,
+    });
+  }
   refresh();
 }
 
@@ -236,6 +268,24 @@ export async function revokeBadgeAction(scoutId: string, badgeId: string) {
     .delete(schema.badgeAwards)
     .where(and(eq(schema.badgeAwards.scoutId, scoutId), eq(schema.badgeAwards.badgeId, badgeId)));
   await logActivity({ scoutId, badgeId, kind: "revoked", actor: leader.name, message: "removed a badge sign-off" });
+  refresh();
+}
+
+/** Ask the AI leader to look at one submission now. */
+export async function aiReviewAction(progressId: string) {
+  await requireLeader();
+  if (!aiReviewerAvailable()) return;
+  await reviewSubmission(progressId, { auto: false });
+  refresh();
+}
+
+/** Ask the AI leader to work through everything waiting, in the background. */
+export async function aiReviewAllAction() {
+  await requireLeader();
+  if (!aiReviewerAvailable()) return;
+  after(async () => {
+    await reviewWaiting();
+  });
   refresh();
 }
 
@@ -344,6 +394,15 @@ export async function saveSettingsAction(_prev: FormState, formData: FormData): 
     allowSignup: formData.get("allowSignup") === "on",
     groupCode: String(formData.get("groupCode") ?? "").trim().slice(0, 40),
     eventName: String(formData.get("eventName") ?? "").trim().slice(0, 80) || "JOTA-JOTI",
+    groupJid: String(formData.get("groupJid") ?? "").trim().toUpperCase().slice(0, 20),
+    // The AI switches are only on the form when the AI is configured; keep them as they were otherwise.
+    ...(formData.get("aiShown")
+      ? {
+          aiReview: formData.get("aiReview") === "on",
+          aiSignOff: formData.get("aiSignOff") === "on",
+          aiApproveInPerson: formData.get("aiApproveInPerson") === "on",
+        }
+      : {}),
   });
   refresh();
   return { ok: "Settings saved." };

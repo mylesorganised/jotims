@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Award, CircleCheck, Clock, MessageSquare, Wrench } from "lucide-react";
+import { ArrowRight, Award, CircleCheck, Clock, MessageSquare, MessagesSquare, Wrench } from "lucide-react";
 import { BadgeCard } from "@/components/badge-card";
 import { SectionPill } from "@/components/status";
 import { TourInvite } from "@/components/tour/tour-invite";
@@ -167,6 +167,21 @@ export default async function HomePage() {
           </div>
         </section>
       ))}
+
+      <Link
+        href="/chat"
+        data-tour="chat-card"
+        className="flex items-center gap-4 rounded-2xl bg-gradient-to-r from-brand-600 to-brand-700 p-5 text-white shadow-card transition hover:shadow-lift"
+      >
+        <span className="grid size-12 place-items-center rounded-xl bg-white/15">
+          <MessagesSquare className="size-6" />
+        </span>
+        <span className="flex-1">
+          <span className="block font-extrabold">Chat with Scouts around the world 🌍</span>
+          <span className="text-sm text-brand-100">How to get into the JOTA-JOTI chat, practise, and stay safe.</span>
+        </span>
+        <ArrowRight className="size-5 text-white/60" />
+      </Link>
 
       <Link
         href="/toolbox"

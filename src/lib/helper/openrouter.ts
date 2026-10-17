@@ -1,6 +1,8 @@
 import "server-only";
 
+export type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+export type RichMessage = { role: "system" | "user" | "assistant"; content: string | ContentPart[] };
 
 export function helperEnabled() {
   return Boolean(process.env.OPENROUTER_API_KEY);
@@ -83,4 +85,27 @@ export function overHelperLimit(key: string) {
   recent.push(now);
   usage.set(key, recent);
   return false;
+}
+
+/** One complete (non-streamed) reply, for background jobs like describing evidence or writing feedback. */
+export async function chatComplete(messages: RichMessage[], options: { maxTokens?: number; temperature?: number } = {}) {
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "X-Title": "PG Scouts JOTA-JOTI badges",
+    },
+    body: JSON.stringify({
+      model: helperModel(),
+      messages,
+      max_tokens: options.maxTokens ?? 400,
+      temperature: options.temperature ?? 0.3,
+      reasoning: { effort: "low", exclude: true },
+      provider: process.env.OPENROUTER_ALLOW_DATA_COLLECTION === "true" ? undefined : { data_collection: "deny" },
+    }),
+  });
+  if (!res.ok) throw new Error(`OpenRouter ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  return (json.choices?.[0]?.message?.content ?? "").trim();
 }

@@ -37,6 +37,34 @@ leader can tick it off or sign it off on their page, which unlocks the next one.
 - Tasks are either **"You tick this off"** (done when they finish) or **"Leader
   checks this"** (waits for a leader to approve).
 
+## JOTI chat guide (`/chat`)
+
+A "JOTI chat" page (in the menu, and on the login page) walks young people
+into the official JOTA-JOTI chat at
+[chat.jotajoti.info](https://chat.jotajoti.info/home), which runs on
+Rocket.Chat and logs in with a Scout.org account:
+
+- **Age first.** Scout.org accounts are for 13 and over, so younger children
+  (all Beavers and Cubs, and younger Scouts) are told to chat with a leader
+  or grown-up who logs in and stays with them. That's the worldwide
+  JOTA-JOTI rule. Logged-in young people skip the question (it uses their
+  birthday).
+- **13 and over:** how to get a free email with no phone number (Proton
+  Mail), or use the Google, Microsoft or Apple buttons; what to type in each
+  box of the Scout.org sign-up form (with a last-name initial, so their name
+  in the chat stays short); logging in; and checking their profile.
+- **How the chat works:** a clickable picture of the chat screen with
+  numbered parts, a **practice chat** (join, send messages, react, and a
+  pretend stranger's private message to practise the safe response), links
+  into the main rooms, copy-and-paste starter messages, what a JID is, chat
+  words and the safety rules (including how to report and the Safe From Harm
+  email).
+- Set your group's **JID** in Settings to show it on the page.
+
+The chat can't be shown inside this site: chat.jotajoti.info blocks being
+framed by other sites, and its logins only work on its own site. So the
+guide opens it in a new tab.
+
 ## AI helper (optional)
 
 A floating **"Ask the helper"** button lets young people ask questions about
@@ -51,8 +79,9 @@ in, so a typical question costs a tiny fraction of a penny).
   auto-checked puzzles, and it's told to give hints, not do the work.
 - **Safety**: written for ages 6–14; never asks for personal details; points
   to a leader, "Ask for help" or Childline if someone seems worried or
-  unsafe. Messages that mention things like bullying or being hurt are
-  flagged: the young person's hand goes up on the dashboard and the chat is
+  unsafe. Messages that suggest a young person might be unsafe, upset or
+  bullied are flagged (by Jev when `JEV_API_KEY` is set, otherwise by a
+  keyword list): their hand goes up on the dashboard and the chat is
   highlighted. Every young person's chats are visible on their page in the
   leaders' area.
 - **Privacy**: requests only go to OpenRouter providers that don't collect or
@@ -73,6 +102,53 @@ doesn't appear. Optional: `OPENROUTER_MODEL` to use a different model, and
 `OPENROUTER_ALLOW_DATA_COLLECTION=true` if no privacy-respecting provider is
 available.
 
+## AI leader (optional)
+
+An AI leader can check work as it comes in, so young people hear back in
+seconds instead of waiting for a leader to get to the queue. It's built from
+two models, each doing what it's good at:
+
+- **[Jev](https://typesafe.ai)** (TypeSafe) makes the judgments: does the work
+  meet the task's "what to look for" note, is every question genuinely
+  answered, how much effort for their age, and is there anything worrying,
+  any personal details, or any attempt to trick the marker. It returns
+  calibrated probabilities in about a quarter of a second for a tiny fraction
+  of a penny, and fixed thresholds in `src/lib/ai/reviewer.ts` turn those into
+  decisions.
+- **GLM 5.3 Flash** (the helper's model) reads uploaded screenshots so Jev can
+  judge them, and writes the kind, specific note the young person gets. Jev
+  checks that note before it's sent.
+
+What it does:
+
+- **Work sent to a leader**: approves it when it clearly meets the
+  requirement, sends it back with feedback when it clearly isn't done, and
+  otherwise leaves it in the Review queue with a note saying why (not sure,
+  personal details, or something worrying, which also puts the young person's
+  hand up). After three send-backs it stops and leaves it for a person.
+- **In-person tasks**: Jev decides per task whether only a leader who saw it
+  (a phone call, a chat, signing) or received it (an email or video) can
+  confirm it. For those it only checks the written part, unless you switch on
+  "Also approve tasks a leader would normally see or receive" in Settings.
+- **Badge sign-off**: when every task for a badge is done, it checks the
+  self-check tasks weren't rushed and signs the badge off. If one clearly
+  wasn't done, it reopens it with feedback; if it's unsure, it leaves the
+  badge for a leader. Tasks a leader already ticked off are trusted.
+- Every decision is in the activity feed and on the Review page ("How it
+  decided" shows the scores and what it saw in each upload). Leaders can
+  reopen anything or undo a sign-off, and can ask the AI to review a
+  submission (or everything waiting) from the Review page.
+
+**Notifications**: young people get a 🔔 in the header. When a leader or the
+AI approves work, asks for changes or signs off a badge, a message pops up
+within a few seconds (with confetti for badges), the page updates itself, and,
+if they allow it, their browser alerts them while they're in another tab
+(e.g. Scratch).
+
+To switch it on, add a TypeSafe API key as `JEV_API_KEY` (in `.env.local` and
+in Vercel), plus `OPENROUTER_API_KEY` for feedback notes and reading
+screenshots. Each part can be turned off in Settings.
+
 ## Guided tours
 
 Spotlight walkthroughs dim the page and explain each part in turn: "Getting
@@ -87,7 +163,9 @@ by their `data-tour` tags; the places and tours are listed in
 - **Dashboard**: who needs help, what's waiting for review, badges ready to
   sign off and the latest activity. It refreshes by itself.
 - **Review**: every answer and upload, with "what to look for" notes. Approve
-  or ask for changes with a message the young person sees.
+  or ask for changes with a message the young person sees (they're notified
+  straight away). With the AI leader on, each submission shows what it
+  decided and why.
 - **Young people**: search and filter by section, add one person or paste a
   whole list, edit details and remove people. Each person's page shows every
   badge and task: tick off work done on paper, reopen tasks, sign off badges
@@ -98,8 +176,9 @@ by their `data-tour` tags; the places and tours are listed in
   pictures and all; nothing is saved).
 - **Leaders**: proper accounts with a username and password. Add leaders,
   reset passwords and change your own.
-- **Settings**: event name, allow self sign-up, and an optional **group code**
-  (e.g. written on the wall) that young people need to log in.
+- **Settings**: event name, allow self sign-up, an optional **group code**
+  (e.g. written on the wall) that young people need to log in, your group's
+  JOTA-JOTI **JID** (shown in the chat guide), and the AI leader switches.
 
 ## Run it on your computer
 
@@ -160,7 +239,11 @@ and then `npm run dev`. Be careful: you're then editing real data.
   to the young person who uploaded them or a leader.
 - The app never asks young people to type phone numbers or addresses, and the
   safety steps remind them not to.
-- Deleting a young person deletes all their answers and uploaded files.
+- The AI leader sees a young person's section, age and answers (never their
+  name) and descriptions of their uploaded images. It never approves work
+  containing personal details or anything worrying; those go to a leader.
+- Deleting a young person deletes all their answers, uploaded files, messages
+  and AI reviews.
 - After the event, export the CSV for your records (e.g. to update OSM), then
   consider deleting people you no longer need to keep.
 

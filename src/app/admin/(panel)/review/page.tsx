@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AutoRefresh } from "@/components/admin/form-bits";
+import { Sparkles } from "lucide-react";
+import { aiReviewAllAction } from "@/app/actions/leader";
+import { AutoRefresh, SubmitButton } from "@/components/admin/form-bits";
 import { SubmissionCard } from "@/components/admin/submission-card";
 import { Card, cn, PageTitle } from "@/components/ui";
+import { aiReviewerAvailable, getLatestAiReviews } from "@/lib/ai/reviewer";
 import { requireLeader } from "@/lib/auth";
 import { getRecentSubmissions, getReviewQueue, requestTime } from "@/lib/data";
 
@@ -17,6 +20,11 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
   const [queue, recent] = await Promise.all([getReviewQueue(), showAll ? getRecentSubmissions(80) : Promise.resolve([])]);
   const now = await requestTime();
   const items = showAll ? recent : queue;
+  const aiReviews = await getLatestAiReviews(items.map((i) => i.progress.id));
+  const unreviewed = queue.filter((q) => {
+    const last = aiReviews.get(q.progress.id);
+    return !last || last.decision === "error" || (q.progress.submittedAt && last.createdAt < q.progress.submittedAt);
+  });
 
   return (
     <div className="space-y-6">
@@ -27,6 +35,15 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
           showAll
             ? "Everything young people have finished or sent in, newest first."
             : "Tasks waiting for a leader to check, oldest first."
+        }
+        actions={
+          aiReviewerAvailable() && unreviewed.length > 0 ? (
+            <form action={aiReviewAllAction}>
+              <SubmitButton variant="secondary" size="sm">
+                <Sparkles className="size-4" /> AI review {unreviewed.length} waiting
+              </SubmitButton>
+            </form>
+          ) : undefined
         }
       />
       <div className="flex gap-1 rounded-xl bg-white p-1 ring-1 ring-line sm:inline-flex">
@@ -55,7 +72,7 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
       ) : (
         <div className="grid gap-2 lg:grid-cols-2" data-tour="review-list">
           {items.map(({ progress, scout }) => (
-            <SubmissionCard key={progress.id} progress={progress} scout={scout} now={now} />
+            <SubmissionCard key={progress.id} progress={progress} scout={scout} now={now} ai={aiReviews.get(progress.id)} />
           ))}
         </div>
       )}

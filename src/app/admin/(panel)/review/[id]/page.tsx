@@ -9,12 +9,14 @@ import {
   requestChangesAction,
   resolveHelpAction,
 } from "@/app/actions/leader";
+import { AiReviewCard } from "@/components/admin/ai-review-card";
 import { AnswerView } from "@/components/admin/answer-view";
 import { SubmitButton } from "@/components/admin/form-bits";
 import { BadgeEmblem } from "@/components/badge-emblem";
 import { SectionPill, TaskStatusPill } from "@/components/status";
 import { buttonClass, Callout, Card, inputClass } from "@/components/ui";
 import { badgeName, getBadge, getTask } from "@/content";
+import { aiReviewerAvailable, getLatestAiReviews } from "@/lib/ai/reviewer";
 import { requireLeader } from "@/lib/auth";
 import { ageOn, getProgressById, getReviewQueue, getTaskUploads, requestTime } from "@/lib/data";
 import { formatDateTime, timeAgo } from "@/lib/format";
@@ -33,7 +35,12 @@ export default async function ReviewDetailPage({ params }: PageProps<"/admin/rev
   const task = badge && getTask(badge, progress.taskId);
   if (!badge || !task) notFound();
 
-  const [uploads, queue] = await Promise.all([getTaskUploads(scout.id, badge.id, task.id), getReviewQueue()]);
+  const [uploads, queue, aiReviews] = await Promise.all([
+    getTaskUploads(scout.id, badge.id, task.id),
+    getReviewQueue(),
+    getLatestAiReviews([progress.id]),
+  ]);
+  const aiReview = aiReviews.get(progress.id) ?? null;
   const now = await requestTime();
   const nextInQueue = queue.find((q) => q.progress.id !== progress.id);
 
@@ -162,6 +169,15 @@ export default async function ReviewDetailPage({ params }: PageProps<"/admin/rev
               </form>
             )}
           </Card>
+
+          {(aiReview || aiReviewerAvailable()) && (
+            <AiReviewCard
+              review={aiReview}
+              progressId={progress.id}
+              canAsk={aiReviewerAvailable() && progress.status === "submitted"}
+              now={now}
+            />
+          )}
 
           <Link href={`/admin/scouts/${scout.id}#${badge.id}`} className={buttonClass("ghost", "sm", "w-full")}>
             See all of {scout.firstName}&apos;s {badgeName(badge)} work
