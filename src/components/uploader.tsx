@@ -1,11 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, FileText, Film, LoaderCircle, Presentation, Upload, X } from "lucide-react";
+import { Camera, FileText, Film, LoaderCircle, Presentation, ScrollText, Upload, X } from "lucide-react";
 import { deleteUploadAction, recordBlobUploadAction, type RecordedUpload } from "@/app/actions/scout";
-import { isSlideDeck } from "@/lib/file-kinds";
+import { viewerKind } from "@/lib/file-kinds";
 import { fileSize } from "@/lib/format";
-import { SlideViewer } from "./slides/slide-viewer";
+import { FileViewer } from "./slides/file-viewer";
 import { Callout, cn } from "./ui";
 
 export type UploadConfig = {
@@ -70,22 +70,27 @@ export function FilePreview({ file, onRemove }: { file: RecordedUpload; onRemove
   const src = `/api/files/${file.id}`;
   const isImage = file.contentType.startsWith("image/");
   const isVideo = file.contentType.startsWith("video/");
-  const isSlides = isSlideDeck(file);
+  const kind = viewerKind(file);
   const [viewing, setViewing] = useState(false);
   return (
     <div className="group relative overflow-hidden rounded-xl bg-white ring-1 ring-line">
-      {isSlides ? (
+      {kind ? (
         <>
           <button
             type="button"
             onClick={() => setViewing(true)}
-            className="flex h-32 w-full flex-col items-center justify-center gap-2 bg-orange-50 p-3 text-center transition hover:bg-orange-100"
+            className={cn(
+              "flex h-32 w-full flex-col items-center justify-center gap-2 p-3 text-center transition",
+              kind === "slides" ? "bg-orange-50 hover:bg-orange-100" : "bg-sky-50 hover:bg-sky-100",
+            )}
           >
-            <Presentation className="size-8 text-orange-600" />
+            {kind === "slides" ? <Presentation className="size-8 text-orange-600" /> : <ScrollText className="size-8 text-sky-600" />}
             <span className="line-clamp-2 text-xs font-semibold break-all">{file.fileName}</span>
-            <span className="rounded-full bg-orange-600 px-2.5 py-0.5 text-[11px] font-bold text-white">View slides</span>
+            <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-bold text-white", kind === "slides" ? "bg-orange-600" : "bg-sky-600")}>
+              {kind === "slides" ? "View slides" : "View document"}
+            </span>
           </button>
-          {viewing && <SlideViewer fileId={file.id} fileName={file.fileName} onClose={() => setViewing(false)} />}
+          {viewing && <FileViewer fileId={file.id} fileName={file.fileName} kind={kind} onClose={() => setViewing(false)} />}
         </>
       ) : isImage ? (
         <a href={src} target="_blank" rel="noopener noreferrer" className="block">

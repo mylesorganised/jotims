@@ -36,3 +36,29 @@ export function slideText(bytes: Uint8Array, maxChars = 2000): string | null {
   const all = lines.join("\n");
   return `${slides.length} slide${slides.length > 1 ? "s" : ""}.\n${all.length > maxChars ? `${all.slice(0, maxChars)}…` : all}`;
 }
+
+/**
+ * The words in a .docx (paragraph by paragraph, tables included) and how many
+ * pictures it has, so the AI leader can read documents it can't open.
+ */
+export function docText(bytes: Uint8Array, maxChars = 2500): string | null {
+  let files: Record<string, Uint8Array>;
+  try {
+    files = unzipSync(bytes, { filter: (f) => f.name === "word/document.xml" && f.originalSize < 20_000_000 });
+  } catch {
+    return null;
+  }
+  const xml = files["word/document.xml"] && strFromU8(files["word/document.xml"]);
+  if (!xml) return null;
+  const paragraphs = [...xml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)]
+    .map((p) =>
+      decode(
+        [...p[0].matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>|<w:tab\/>|<w:br\/>/g)].map((t) => (t[1] === undefined ? " " : t[1])).join(""),
+      ).trim(),
+    )
+    .filter(Boolean);
+  const pictures = (xml.match(/<w:drawing>/g) ?? []).length;
+  const words = paragraphs.join(" / ").split(/\s+/).filter(Boolean).length;
+  const body = paragraphs.join("\n") || "(no text)";
+  return `${words} words${pictures ? `, ${pictures} picture${pictures > 1 ? "s" : ""}` : ""}.\n${body.length > maxChars ? `${body.slice(0, maxChars)}…` : body}`;
+}

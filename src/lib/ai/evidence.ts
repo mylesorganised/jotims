@@ -1,11 +1,11 @@
 import "server-only";
 import type { FieldDef, TaskDef } from "@/content/types";
 import type { UploadRow } from "@/lib/data";
-import { isSlideDeck } from "@/lib/file-kinds";
+import { isSlideDeck, isWordDoc } from "@/lib/file-kinds";
 import { chatComplete, helperEnabled } from "@/lib/helper/openrouter";
 import { fileSize } from "@/lib/format";
 import { openStoredFile } from "@/lib/storage";
-import { slideText } from "./slides";
+import { docText, slideText } from "./office-text";
 
 const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
@@ -17,7 +17,7 @@ const KNOWN_FILES: [RegExp, string][] = [
   [/\.py$/i, "a Python program"],
   [/\.(pdf)$/i, "a PDF document"],
   [/\.(pptx?|ppsx|key|odp)$/i, "a slideshow"],
-  [/\.(docx?|odt|txt)$/i, "a document"],
+  [/\.(docx?|dotx|docm|odt|txt)$/i, "a document"],
   [/\.(mp4|mov|webm|m4v|avi)$/i, "a video"],
   [/\.(mp3|m4a|wav|ogg)$/i, "an audio recording"],
 ];
@@ -49,6 +49,12 @@ export async function describeUploads(task: TaskDef, uploads: UploadRow[], limit
         const bytes = await readBytes(upload, MAX_DECK_BYTES).catch(() => null);
         const text = bytes && slideText(bytes);
         out.set(upload.id, text ? `Slides "${upload.fileName}": ${text}` : plain);
+        return;
+      }
+      if (isWordDoc(upload)) {
+        const bytes = await readBytes(upload, MAX_DECK_BYTES).catch(() => null);
+        const text = bytes && docText(bytes);
+        out.set(upload.id, text ? `Document "${upload.fileName}": ${text}` : plain);
         return;
       }
       if (!helperEnabled() || !IMAGE_TYPES.has(upload.contentType) || described >= limit) {

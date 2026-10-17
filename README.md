@@ -116,7 +116,7 @@ two models, each doing what it's good at:
   of a penny, and fixed thresholds in `src/lib/ai/reviewer.ts` turn those into
   decisions.
 - **GLM 5.3 Flash** (the helper's model) reads uploaded screenshots so Jev can
-  judge them (the words on each slide of a PowerPoint are read directly), and writes the kind, specific note the young person gets. Jev
+  judge them (the words in PowerPoint and Word files are read directly), and writes the kind, specific note the young person gets. Jev
   checks that note before it's sent.
 
 What it does:
@@ -165,9 +165,10 @@ by their `data-tour` tags; the places and tours are listed in
 - **Review**: every answer and upload, with "what to look for" notes. Approve
   or ask for changes with a message the young person sees (they're notified
   straight away). With the AI leader on, each submission shows what it
-  decided and why. PowerPoint files (.pptx) open in a **slide viewer** in the
-  browser ("View slides"), so you don't need PowerPoint; PDFs, pictures and
-  videos open in the browser too.
+  decided and why. PowerPoint files (.pptx) open in a **slide viewer** and Word files
+  (.docx) in a **document viewer**, right in the browser ("View slides" /
+  "View document"), so you don't need Office; PDFs, pictures and videos open
+  in the browser too. Files never leave the app to be shown.
 - **Helper chats**: every conversation anyone has had with the AI helper
   (young people and leaders), newest first, with the full transcript, the
   page or task it was asked on, and anything flagged. Filter by young people,
