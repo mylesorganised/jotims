@@ -104,8 +104,8 @@ export type StepDef = {
  * AI leader ticks it off.
  */
 export type SimulateDef = {
-  /** email inbox, phone texting, or let them choose */
-  kind: "email" | "sms" | "either";
+  /** email inbox, phone texting, let them choose, or a video message recorded on the pretend phone */
+  kind: "email" | "sms" | "either" | "video";
   /** what their message has to do (used to judge it and to explain what's missing) */
   points: string[];
   /** answers to fill in from what they sent (field ids) */
@@ -117,6 +117,8 @@ export type SimulateDef = {
   };
   /** a texting test: at least this many words, typed at least this fast; pasting is blocked */
   speedTest?: { minWords: number; minWpm: number };
+  /** a video message: the upload field it's saved to, and the longest recording allowed */
+  video?: { field: string; maxSeconds: number };
 };
 
 /** An "explain it to a leader" step that can be done as a chat with the AI leader. */

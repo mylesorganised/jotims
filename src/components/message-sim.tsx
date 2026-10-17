@@ -17,15 +17,18 @@ import {
   SendHorizontal,
   Signal,
   Timer,
+  Video,
   Wifi,
   X,
 } from "lucide-react";
+import type { RecordedUpload } from "@/app/actions/scout";
 import type { SimulateDef } from "@/content/types";
 import type { AnswerValue, Answers } from "@/lib/db/schema";
 import { cn } from "./ui";
+import { sendFile, type UploadConfig } from "./uploader";
 
-type Kind = "email" | "sms";
-type Message = { role: "ai" | "scout"; text: string; subject?: string; at: string };
+type Kind = "email" | "sms" | "video";
+type Message = { role: "ai" | "scout"; text: string; subject?: string; at: string; uploadId?: string; seconds?: number };
 type Sim = { kind: Kind; status: "chatting" | "passed" | "referred"; messages: Message[] };
 
 const AKELA = { name: "Akela (AI leader)", email: "akela@pgscouts.mail" };
@@ -49,6 +52,8 @@ export function MessageSim({
   firstName,
   locked,
   preview,
+  uploadConfig,
+  onUploaded,
 }: {
   def: SimulateDef;
   badgeId: string;
@@ -59,6 +64,10 @@ export function MessageSim({
   firstName: string;
   locked: boolean;
   preview?: boolean;
+  /** how files are uploaded here (for video messages) */
+  uploadConfig: UploadConfig;
+  /** a video message was uploaded into a field */
+  onUploaded: (fieldId: string, upload: RecordedUpload) => void;
 }) {
   const router = useRouter();
   const [available, setAvailable] = useState<boolean | null>(preview ? true : null);
@@ -67,7 +76,7 @@ export function MessageSim({
   const [error, setError] = useState<string | null>(null);
   const [finishing, setFinishing] = useState(false);
 
-  const chosenFromAnswers: Kind | null = useMemo(() => {
+  const chosenFromAnswers: "email" | "sms" | null = useMemo(() => {
     if (def.kind !== "either" || !def.fills?.how) return null;
     const how = answers[def.fills.how.field];
     return how === def.fills.how.sms ? "sms" : how === def.fills.how.email ? "email" : null;
@@ -133,6 +142,26 @@ export function MessageSim({
     if (!sim || (sim.kind !== k && sim.status !== "passed")) await post({ action: "start", kind: k });
   }
 
+  async function sendVideo(video: { blob: Blob; seconds: number; caption: string }) {
+    if (preview || !def.video) return false;
+    setBusy(true);
+    setError(null);
+    try {
+      const type = video.blob.type.split(";")[0] || "video/webm";
+      const file = new File([video.blob], `video-message.${type.includes("mp4") ? "mp4" : "webm"}`, { type });
+      const uploaded = await sendFile(file, def.video.field, uploadConfig);
+      onUploaded(def.video.field, uploaded);
+      setSim((s) =>
+        s ? { ...s, messages: [...s.messages, { role: "scout", text: video.caption, uploadId: uploaded.id, seconds: video.seconds, at: new Date().toISOString() }] } : s,
+      );
+      return await post({ action: "video", uploadId: uploaded.id, seconds: video.seconds, text: video.caption });
+    } catch (e) {
+      setError((e as Error).message || "The video didn't send. Try again?");
+      setBusy(false);
+      return false;
+    }
+  }
+
   async function send(message: { subject?: string; text: string; typingMs?: number }) {
     if (preview) return false;
     // Show it straight away while Akela thinks.
@@ -181,13 +210,24 @@ export function MessageSim({
       {kind === "sms" && (
         <PhoneApp sim={sim} busy={busy} def={def} prefill={prefill.body} planned={planned} onSend={send} disabled={locked || preview} />
       )}
+      {kind === "video" && (
+        <VideoPhone
+          sim={sim}
+          busy={busy}
+          maxSeconds={def.video?.maxSeconds ?? 60}
+          onSend={sendVideo}
+          disabled={locked || preview || uploadConfig.mode === "none"}
+        />
+      )}
 
       {sim?.status === "passed" && (
         <p className="flex items-start gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 ring-1 ring-emerald-200">
           <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
-          {finishing
-            ? "Akela got it! ✅ The AI leader is ticking off your task now. Watch for a message at the top."
-            : "Akela got it! ✅ This part is done. Your answers have been filled in for you."}
+          {kind === "video"
+            ? "Akela got your video! 🎬 It's been sent to a leader, who will watch it and tick it off."
+            : finishing
+              ? "Akela got it! ✅ The AI leader is ticking off your task now. Watch for a message at the top."
+              : "Akela got it! ✅ This part is done. Your answers have been filled in for you."}
         </p>
       )}
       {preview && <p className="text-xs text-muted">Preview: young people send their message to the AI leader here.</p>}
@@ -581,6 +621,272 @@ function PhoneApp({
         <p className="max-w-xs text-center text-xs text-muted lg:mt-10 lg:text-left">
           <MessageCircle className="mr-1 inline size-3.5" />
           Pretend phone: your texts only go to Akela, the AI leader.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------ video phone
+
+const RECORD_TYPES = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
+
+/**
+ * A pretend phone that records a video message with the computer's camera and
+ * microphone, lets them watch it back, and sends it to Akela like a video text.
+ */
+function VideoPhone({
+  sim,
+  busy,
+  maxSeconds,
+  onSend,
+  disabled,
+}: {
+  sim: Sim | null;
+  busy: boolean;
+  maxSeconds: number;
+  onSend: (video: { blob: Blob; seconds: number; caption: string }) => Promise<boolean>;
+  disabled?: boolean;
+}) {
+  const [mode, setMode] = useState<"chat" | "camera" | "recording" | "review">("chat");
+  const [error, setError] = useState<string | null>(null);
+  const [seconds, setSeconds] = useState(0);
+  const [recording, setRecording] = useState<{ blob: Blob; url: string; seconds: number } | null>(null);
+  const [caption, setCaption] = useState("");
+  const stream = useRef<MediaStream | null>(null);
+  const recorder = useRef<MediaRecorder | null>(null);
+  const live = useRef<HTMLVideoElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const started = useRef(0);
+  const done = sim?.status === "passed";
+
+  const stopCamera = () => {
+    stream.current?.getTracks().forEach((t) => t.stop());
+    stream.current = null;
+  };
+
+  // Always let go of the camera when leaving the page.
+  useEffect(() => () => stopCamera(), []);
+  useEffect(() => {
+    list.current?.scrollTo({ top: list.current.scrollHeight, behavior: "smooth" });
+  }, [sim?.messages.length, busy]);
+
+  // Count the seconds while recording, and stop at the limit.
+  useEffect(() => {
+    if (mode !== "recording") return;
+    const t = setInterval(() => {
+      const s = Math.floor((Date.now() - started.current) / 1000);
+      setSeconds(s);
+      if (s >= maxSeconds) recorder.current?.stop();
+    }, 250);
+    return () => clearInterval(t);
+  }, [mode, maxSeconds]);
+
+  async function openCamera() {
+    setError(null);
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setError("This browser can't record video. Try Chrome, Edge or Safari, or upload a video below.");
+      return;
+    }
+    try {
+      stream.current = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: true,
+      });
+      setMode("camera");
+      requestAnimationFrame(() => {
+        if (live.current && stream.current) {
+          live.current.srcObject = stream.current;
+          void live.current.play().catch(() => {});
+        }
+      });
+    } catch {
+      setError("We couldn't use the camera. Check your browser asked to use it and you pressed Allow, or upload a video below.");
+    }
+  }
+
+  function record() {
+    if (!stream.current) return;
+    const mimeType = RECORD_TYPES.find((t) => MediaRecorder.isTypeSupported(t));
+    const chunks: Blob[] = [];
+    const r = new MediaRecorder(stream.current, { ...(mimeType ? { mimeType } : {}), videoBitsPerSecond: 1_000_000 });
+    r.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    r.onstop = () => {
+      const blob = new Blob(chunks, { type: r.mimeType || mimeType || "video/webm" });
+      const length = Math.max(1, Math.round((Date.now() - started.current) / 1000));
+      stopCamera();
+      setRecording({ blob, url: URL.createObjectURL(blob), seconds: length });
+      setMode("review");
+    };
+    recorder.current = r;
+    started.current = Date.now();
+    setSeconds(0);
+    r.start(500);
+    setMode("recording");
+  }
+
+  function retake() {
+    if (recording) URL.revokeObjectURL(recording.url);
+    setRecording(null);
+    void openCamera();
+  }
+
+  function cancel() {
+    if (recorder.current?.state === "recording") recorder.current.stop();
+    stopCamera();
+    if (recording) URL.revokeObjectURL(recording.url);
+    setRecording(null);
+    setMode("chat");
+  }
+
+  async function send() {
+    if (!recording || !caption.trim()) return;
+    const ok = await onSend({ blob: recording.blob, seconds: recording.seconds, caption: caption.trim() });
+    if (ok) {
+      URL.revokeObjectURL(recording.url);
+      setRecording(null);
+      setCaption("");
+      setMode("chat");
+    }
+  }
+
+  const time = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-[min(20rem,100%)] shrink-0 rounded-[2.6rem] bg-zinc-900 p-2.5 shadow-lift">
+        <div className="relative flex h-[34rem] flex-col overflow-hidden rounded-[2.1rem] bg-white">
+          <div className="relative z-20 flex items-center justify-between px-6 pb-1 pt-3 text-xs font-bold">
+            <span className={cn(mode !== "chat" && "text-white")}>{new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+            <span className="absolute left-1/2 top-2 h-6 w-24 -translate-x-1/2 rounded-full bg-zinc-900" aria-hidden />
+            <span className={cn("flex items-center gap-1", mode !== "chat" && "text-white")}>
+              <Signal className="size-3.5" /> <Wifi className="size-3.5" /> <BatteryFull className="size-4" />
+            </span>
+          </div>
+
+          {mode === "chat" ? (
+            <>
+              <div className="flex items-center gap-2 border-b border-zinc-100 px-3 pb-2 pt-1">
+                <ChevronLeft className="size-5 text-sky-500" />
+                <span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-sm font-black text-white">A</span>
+                <span className="leading-tight">
+                  <span className="block text-sm font-bold">Akela (AI leader)</span>
+                  <span className="block text-[11px] text-emerald-600">{busy ? "receiving…" : "online"}</span>
+                </span>
+              </div>
+              <div ref={list} className="flex-1 space-y-1.5 overflow-y-auto px-3 py-3">
+                {(sim?.messages ?? []).map((m, i) => (
+                  <div key={i} className={cn("flex", m.role === "scout" ? "justify-end" : "justify-start")}>
+                    {m.uploadId ? (
+                      <div className="max-w-[80%] overflow-hidden rounded-3xl rounded-br-md bg-sky-500 text-white">
+                        <video src={`/api/files/${m.uploadId}`} controls playsInline preload="metadata" className="max-h-56 w-full bg-black" />
+                        <p className="px-3 py-1.5 text-[13px]">
+                          🎬 {m.seconds ? `${time(m.seconds)} · ` : ""}
+                          {m.text}
+                        </p>
+                      </div>
+                    ) : (
+                      <div
+                        className={cn(
+                          "max-w-[78%] whitespace-pre-wrap rounded-3xl px-3.5 py-2 text-[14px] leading-snug",
+                          m.role === "scout" ? "rounded-br-md bg-sky-500 text-white" : "rounded-bl-md bg-zinc-100 text-zinc-900",
+                        )}
+                      >
+                        {m.text}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {busy && (
+                  <p className="flex items-center justify-end gap-1.5 text-[11px] text-zinc-500">
+                    <LoaderCircle className="size-3.5 animate-spin" /> Sending your video…
+                  </p>
+                )}
+              </div>
+              <div className="border-t border-zinc-100 p-3">
+                <button
+                  type="button"
+                  onClick={openCamera}
+                  disabled={disabled || busy || done}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-500 py-2.5 font-extrabold text-white hover:bg-rose-600 disabled:opacity-40"
+                >
+                  <Video className="size-5" /> {done ? "Sent ✅" : "Record a video message"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="absolute inset-0 flex flex-col bg-black text-white">
+              {mode === "review" && recording ? (
+                <video src={recording.url} controls playsInline className="mt-10 max-h-[18rem] w-full bg-black" />
+              ) : (
+                <video ref={live} muted playsInline className="h-full w-full -scale-x-100 object-cover" />
+              )}
+              <button
+                type="button"
+                onClick={cancel}
+                className="absolute left-3 top-10 grid size-9 place-items-center rounded-full bg-black/50 hover:bg-black/70"
+                aria-label="Close camera"
+              >
+                <X className="size-5" />
+              </button>
+              {mode === "recording" && (
+                <span className="absolute left-1/2 top-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-rose-600 px-3 py-1 text-xs font-black">
+                  <span className="size-2 animate-pulse rounded-full bg-white" /> {time(seconds)} / {time(maxSeconds)}
+                </span>
+              )}
+              {mode === "camera" && (
+                <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-black/70 to-transparent pb-6 pt-10">
+                  <p className="text-xs">Say hello, who you are (first name), and something about JOTI!</p>
+                  <button type="button" onClick={record} className="grid size-16 place-items-center rounded-full border-4 border-white" aria-label="Start recording">
+                    <span className="size-12 rounded-full bg-rose-500" />
+                  </button>
+                </div>
+              )}
+              {mode === "recording" && (
+                <div className="absolute inset-x-0 bottom-0 flex justify-center pb-6">
+                  <button
+                    type="button"
+                    onClick={() => recorder.current?.stop()}
+                    className="grid size-16 place-items-center rounded-full border-4 border-white"
+                    aria-label="Stop recording"
+                  >
+                    <span className="size-7 rounded-md bg-rose-500" />
+                  </button>
+                </div>
+              )}
+              {mode === "review" && (
+                <div className="mt-auto space-y-2 bg-zinc-900 p-3">
+                  <input
+                    value={caption}
+                    onChange={(e) => setCaption(e.target.value)}
+                    maxLength={300}
+                    placeholder="What's your video about?"
+                    className="w-full rounded-2xl bg-white px-3 py-2 text-[14px] text-zinc-900 focus:outline-none"
+                    aria-label="What's your video about?"
+                  />
+                  <div className="flex gap-2">
+                    <button type="button" onClick={retake} className="flex-1 rounded-2xl bg-white/15 py-2 text-sm font-bold hover:bg-white/25">
+                      Retake
+                    </button>
+                    <button
+                      type="button"
+                      onClick={send}
+                      disabled={!caption.trim() || busy}
+                      className="flex flex-[2] items-center justify-center gap-1.5 rounded-2xl bg-sky-500 py-2 text-sm font-extrabold hover:bg-sky-600 disabled:opacity-40"
+                    >
+                      {busy ? <LoaderCircle className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />} Send to Akela
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      {error && <p className="max-w-sm rounded-xl bg-rose-50 px-3 py-2 text-center text-sm text-rose-800 ring-1 ring-rose-200">{error}</p>}
+      {!done && !error && (
+        <p className="max-w-xs text-center text-xs text-muted">
+          🎥 Your browser will ask to use the camera and microphone: press Allow. Only Akela and your leaders see the video.
         </p>
       )}
     </div>

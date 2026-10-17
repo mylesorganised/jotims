@@ -966,9 +966,13 @@ const scoutTasks: TaskDef[] = [
     steps: [
       {
         title: "Record and send",
-        body: ["Record a video message on your phone and send it to a leader. Keep it sensible!"],
-        warning: "Don't include personal details like your address or school.",
+        body: [
+          "Record a short video message and send it to **Akela** (our AI leader) on the pretend phone below. It uses this computer's camera and microphone. Keep it sensible!",
+          "Recorded one on a real phone instead? Send it to a leader, or upload it below.",
+        ],
+        warning: "Don't include personal details like your full name, address or school. Only Akela and your leaders see it.",
         withLeader: true,
+        simulate: { kind: "video", points: [], fills: { body: "about" }, video: { field: "video", maxSeconds: 60 } },
         fields: [
           { kind: "text", id: "about", label: "What was your video about?", required: true },
           { kind: "upload", id: "video", label: "Upload the video too (optional)", accept: "video/*,image/*" },

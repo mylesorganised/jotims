@@ -283,6 +283,8 @@ export function TaskWizard({
                       firstName={scout.firstName}
                       locked={locked}
                       preview={preview}
+                      uploadConfig={uploadConfig}
+                      onUploaded={(fieldId, upload) => setUploadsFor(fieldId, [...uploadsFor(fieldId), upload])}
                     />
                   ) : null
                 }

@@ -159,7 +159,16 @@ export const aiReviews = pgTable("ai_reviews", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export type ExplainMessage = { role: "ai" | "scout"; text: string; at: string; subject?: string; via?: "email" | "sms" };
+export type ExplainMessage = {
+  role: "ai" | "scout";
+  text: string;
+  at: string;
+  subject?: string;
+  via?: "email" | "sms" | "video";
+  /** a video message: the uploaded file and how long it is */
+  uploadId?: string;
+  seconds?: number;
+};
 
 /** "Explain it to a leader" done as a chat with the AI leader (one per young person per step). */
 export const explanations = pgTable(
@@ -173,7 +182,7 @@ export const explanations = pgTable(
     taskId: text("task_id").notNull(),
     step: integer("step").notNull(),
     /** explain = "explain it to a leader" chat; email / sms = the pretend inbox or phone */
-    kind: text("kind").$type<"explain" | "email" | "sms">().notNull().default("explain"),
+    kind: text("kind").$type<"explain" | "email" | "sms" | "video">().notNull().default("explain"),
     /** chatting | passed | referred (passed to a real leader) */
     status: text("status").$type<"chatting" | "passed" | "referred">().notNull().default("chatting"),
     messages: jsonb("messages").$type<ExplainMessage[]>().notNull().default([]),

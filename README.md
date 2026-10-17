@@ -70,6 +70,13 @@ leader can tick it off or sign it off on their page, which unlocks the next one.
   switched off. Once it's right, the answers fill themselves in and, when
   every message step is done, the task is sent and the AI leader ticks it
   off. Set per step with `simulate: {...}` in `src/content/`.
+- **Video message phone**: the Scouts video message task has a pretend phone
+  that records a video with the computer's camera and microphone (up to a
+  minute, with playback and retake), then sends it to Akela like a video
+  text with a "what's it about?" caption. Akela replies, the video is saved
+  privately as the task's upload, and the task goes to a leader to watch and
+  approve (it plays right on the submission). The AI never watches videos,
+  and no video or frames are sent to an AI service.
 
 ## JOTI chat guide (`/chat`)
 

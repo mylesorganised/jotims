@@ -1,4 +1,4 @@
-import { Bot, CheckCircle2, Hand, Mail, MessageCircle, MessagesSquare } from "lucide-react";
+import { Bot, CheckCircle2, Hand, Mail, MessageCircle, MessagesSquare, Video } from "lucide-react";
 import { Card, cn } from "@/components/ui";
 import type { schema } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
@@ -15,8 +15,15 @@ const STATUS = {
 export function ExplanationCard({ row, stepTitle, firstName }: { row: Row; stepTitle: string; firstName: string }) {
   const s = STATUS[row.status];
   const kind = row.kind;
-  const Icon = kind === "email" ? Mail : kind === "sms" ? MessageCircle : MessagesSquare;
-  const title = kind === "email" ? "Email to the AI leader" : kind === "sms" ? "Texts with the AI leader" : "Explained to the AI leader";
+  const Icon = kind === "email" ? Mail : kind === "sms" ? MessageCircle : kind === "video" ? Video : MessagesSquare;
+  const title =
+    kind === "email"
+      ? "Email to the AI leader"
+      : kind === "sms"
+        ? "Texts with the AI leader"
+        : kind === "video"
+          ? "Video message (watch it, then approve)"
+          : "Explained to the AI leader";
   const label = row.status === "passed" && kind !== "explain" ? "Received ✅" : s.label;
   return (
     <Card className="space-y-3 p-5" data-tour="review-explain">
@@ -46,6 +53,10 @@ export function ExplanationCard({ row, stepTitle, firstName }: { row: Row; stepT
                 {m.role === "ai" && <Bot className="size-3" />} {m.role === "ai" ? "AI leader" : firstName}
               </span>
               {m.subject && <span className="mb-1 block font-bold">Subject: {m.subject}</span>}
+              {m.uploadId && (
+                <video src={`/api/files/${m.uploadId}`} controls playsInline preload="metadata" className="mb-1.5 max-h-72 w-full rounded-xl bg-black" />
+              )}
+              {m.uploadId && m.seconds ? `🎬 ${m.seconds}s · ` : ""}
               {m.text}
             </div>
           </li>

@@ -219,11 +219,13 @@ export async function reviewSubmission(progressId: string, { auto }: { auto: boo
     // Steps they did with the AI leader instead (explaining it, or sending a pretend
     // email / text). If all of those passed and they cover every "with a leader"
     // step, the AI leader can confirm the task without a person.
-    const aiSteps = task.steps.map((st, i) => ({ st, i })).filter(({ st }) => st.explain || st.simulate);
+    // (Video messages don't count: the AI never watches them, so a leader does.)
+    const byAi = (st: TaskDef["steps"][number]) => Boolean(st.explain || (st.simulate && st.simulate.kind !== "video"));
+    const aiSteps = task.steps.map((st, i) => ({ st, i })).filter(({ st }) => byAi(st));
     const explainedAll =
       aiSteps.length > 0 &&
       aiSteps.every(({ i }) => explanations.get(i)?.status === "passed") &&
-      task.steps.every((st) => !st.withLeader || st.explain || st.simulate);
+      task.steps.every((st) => !st.withLeader || byAi(st));
     const built = submissionState({
       task,
       answers: progress.answers,
@@ -244,7 +246,14 @@ export async function reviewSubmission(progressId: string, { auto }: { auto: boo
                 [...explanations.values()].map((e) => [
                   task.steps[e.step]?.title ?? `step ${e.step + 1}`,
                   {
-                    how: e.kind === "email" ? "sent an email" : e.kind === "sms" ? "sent text messages" : "explained it in a chat",
+                    how:
+                      e.kind === "email"
+                        ? "sent an email"
+                        : e.kind === "sms"
+                          ? "sent text messages"
+                          : e.kind === "video"
+                            ? "sent a video message (not watched by the AI; a leader needs to watch it)"
+                            : "explained it in a chat",
                     result: e.status,
                     their_messages: e.messages
                       .filter((m) => m.role === "scout")

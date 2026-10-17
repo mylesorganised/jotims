@@ -1,6 +1,6 @@
 import { getBadge, getTask } from "@/content";
 import { getExplanation } from "@/lib/ai/explain";
-import { publicSim, simAvailable, simTurn, startSim, type SimKind } from "@/lib/ai/sim";
+import { publicSim, simAvailable, simTurn, startSim, videoTurn, type SimKind } from "@/lib/ai/sim";
 import { getCurrentScout } from "@/lib/auth";
 import { getTaskRecord } from "@/lib/data";
 import { overHelperLimit } from "@/lib/helper/openrouter";
@@ -18,7 +18,7 @@ function lookup(badgeId: unknown, taskId: unknown, step: unknown) {
   return badge && task && def ? { badge, task, index, def } : null;
 }
 
-function kindFor(def: { kind: "email" | "sms" | "either" }, asked: unknown): SimKind {
+function kindFor(def: { kind: "email" | "sms" | "either" | "video" }, asked: unknown): SimKind {
   if (def.kind !== "either") return def.kind;
   return asked === "sms" ? "sms" : "email";
 }
@@ -46,6 +46,8 @@ export async function POST(request: Request) {
     subject?: unknown;
     text?: unknown;
     typingMs?: unknown;
+    uploadId?: unknown;
+    seconds?: unknown;
   };
   const found = lookup(body.badgeId, body.taskId, body.step);
   if (!found) return json({ error: "Not a messaging step." }, 404);
@@ -63,10 +65,27 @@ export async function POST(request: Request) {
     return json({ sim: publicSim(row) });
   }
 
+  if (body.action === "video") {
+    const row = await getExplanation(scout.id, badge.id, task.id, index);
+    if (!row || row.kind !== "video") return json({ error: "Open the phone first." }, 409);
+    if (row.status === "passed") return json({ sim: publicSim(row) });
+    const caption = typeof body.text === "string" ? body.text : "";
+    if (!caption.trim()) return json({ error: "Say what your video is about first." }, 400);
+    if (typeof body.uploadId !== "string") return json({ error: "The video didn't upload. Try again?" }, 400);
+    try {
+      const seconds = typeof body.seconds === "number" ? body.seconds : 0;
+      const result = await videoTurn({ scout, badge, task, step: index, def, row, uploadId: body.uploadId, seconds, caption });
+      return json({ sim: publicSim(result.row), filled: result.filled, finishing: result.finishing });
+    } catch (error) {
+      console.error("Video message failed", error);
+      return json({ error: (error as Error).message || "That didn't send. Try again?" }, 400);
+    }
+  }
+
   const text = typeof body.text === "string" ? body.text.trim() : "";
   if (!text) return json({ error: "Write your message first." }, 400);
   const row = await getExplanation(scout.id, badge.id, task.id, index);
-  if (!row || row.kind === "explain") return json({ error: "Open the inbox or phone first." }, 409);
+  if (!row || row.kind === "explain" || row.kind === "video") return json({ error: "Open the inbox or phone first." }, 409);
   if (row.status === "passed") return json({ sim: publicSim(row) });
   if (overHelperLimit(`sim:${scout.id}`)) return json({ error: "That's a lot of messages! Have a short break and try again." }, 429);
 

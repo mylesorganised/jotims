@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Camera, FileText, Film, LoaderCircle, Presentation, ScrollText, Upload, X } from "lucide-react";
+import { Camera, FileText, LoaderCircle, Presentation, ScrollText, Upload, X } from "lucide-react";
 import { deleteUploadAction, recordBlobUploadAction, type RecordedUpload } from "@/app/actions/scout";
 import type { StudioMode } from "@/content/types";
 import { viewerKind } from "@/lib/file-kinds";
@@ -88,7 +88,7 @@ async function shrinkImage(file: File): Promise<File> {
   }
 }
 
-async function sendFile(file: File, fieldId: string, config: UploadConfig): Promise<RecordedUpload> {
+export async function sendFile(file: File, fieldId: string, config: UploadConfig): Promise<RecordedUpload> {
   if (config.mode === "blob") {
     const { upload } = await import("@vercel/blob/client");
     const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-80) || "file";
@@ -145,6 +145,8 @@ export function FilePreview({ file, onRemove }: { file: RecordedUpload; onRemove
           </button>
           {viewing && <FileViewer fileId={file.id} fileName={file.fileName} kind={kind} onClose={() => setViewing(false)} />}
         </>
+      ) : isVideo ? (
+        <video src={src} controls preload="metadata" playsInline className="h-32 w-full bg-black object-contain" aria-label={file.fileName} />
       ) : isImage ? (
         <a href={src} target="_blank" rel="noopener noreferrer" className="block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -152,7 +154,7 @@ export function FilePreview({ file, onRemove }: { file: RecordedUpload; onRemove
         </a>
       ) : (
         <a href={src} target="_blank" rel="noopener noreferrer" className="flex h-32 flex-col items-center justify-center gap-2 bg-zinc-50 p-3 text-center">
-          {isVideo ? <Film className="size-8 text-brand-500" /> : <FileText className="size-8 text-brand-500" />}
+          <FileText className="size-8 text-brand-500" />
           <span className="line-clamp-2 text-xs font-semibold break-all">{file.fileName}</span>
         </a>
       )}
