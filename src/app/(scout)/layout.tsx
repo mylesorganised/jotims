@@ -3,9 +3,11 @@ import { Suspense } from "react";
 import { LogOut } from "lucide-react";
 import { logoutAction } from "@/app/actions/scout";
 import { Logo } from "@/components/logo";
+import { HelperProvider } from "@/components/helper/helper";
 import { NavLink } from "@/components/nav-link";
 import { ButtonLink } from "@/components/ui";
 import { getCurrentScout } from "@/lib/auth";
+import { helperEnabled } from "@/lib/helper/openrouter";
 
 // Signed-in pages read the session on every navigation, so they're allowed to
 // block rather than be prefetched as instant static shells.
@@ -36,7 +38,9 @@ export default function ScoutLayout({ children }: LayoutProps<"/">) {
           <NavLink href="/toolbox">Code toolbox</NavLink>
         </nav>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-10">{children}</main>
+      <HelperProvider mode="scout" enabled={helperEnabled()}>
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-6 sm:px-6 sm:pt-10">{children}</main>
+      </HelperProvider>
     </div>
   );
 }

@@ -14,9 +14,9 @@ import { EditScoutForm } from "@/components/admin/scout-forms";
 import { BadgeEmblem } from "@/components/badge-emblem";
 import { BadgeStatusPill, SectionPill, TaskStatusPill } from "@/components/status";
 import { buttonClass, Card, cn, inputClass, ProgressBar } from "@/components/ui";
-import { BADGES, badgeName, getTask, groupParts, type BadgeDef, type TaskDef } from "@/content";
+import { BADGES, badgeName, getBadge, getTask, groupParts, type BadgeDef, type TaskDef } from "@/content";
 import { requireLeader } from "@/lib/auth";
-import { ageOn, getScout, getScoutActivity, getScoutOverview, requestTime, type ProgressRow } from "@/lib/data";
+import { ageOn, getHelperMessages, getScout, getScoutActivity, getScoutOverview, requestTime, type ProgressRow } from "@/lib/data";
 import { formatDate, timeAgo } from "@/lib/format";
 import { badgeProgress, lockedBy } from "@/lib/progress";
 import { formatDob } from "@/lib/validate";
@@ -30,7 +30,11 @@ export default async function ScoutDetailPage({ params }: PageProps<"/admin/scou
   const { id } = await params;
   const scout = await getScout(id);
   if (!scout) notFound();
-  const [{ rows, statuses, awards }, activity] = await Promise.all([getScoutOverview(scout.id), getScoutActivity(scout.id)]);
+  const [{ rows, statuses, awards }, activity, chats] = await Promise.all([
+    getScoutOverview(scout.id),
+    getScoutActivity(scout.id),
+    getHelperMessages(scout.id),
+  ]);
   const now = await requestTime();
 
   const byTask = new Map(rows.map((r) => [`${r.badgeId}/${r.taskId}`, r]));
@@ -120,6 +124,39 @@ export default async function ScoutDetailPage({ params }: PageProps<"/admin/scou
           )}
         </Card>
       </div>
+
+      <Card id="helper" className="scroll-mt-32 p-5 sm:p-6">
+        <h2 className="text-lg font-extrabold">Helper chats</h2>
+        <p className="mb-4 text-sm text-muted">What {scout.firstName} has asked the AI helper (most recent last). Flagged messages also put their hand up on the dashboard.</p>
+        {chats.length === 0 ? (
+          <p className="text-sm text-muted">No helper chats yet.</p>
+        ) : (
+          <ol className="space-y-2">
+            {chats.map((m) => {
+              const badge = m.badgeId ? getBadge(m.badgeId) : undefined;
+              const task = badge && m.taskId ? getTask(badge, m.taskId) : undefined;
+              return (
+                <li
+                  key={m.id}
+                  className={cn(
+                    "rounded-xl px-3.5 py-2.5 text-sm",
+                    m.role === "user" ? "bg-brand-50 ring-1 ring-brand-100" : "ml-6 bg-zinc-50 ring-1 ring-line",
+                    m.flagged === 1 && "bg-rose-50 ring-2 ring-rose-300",
+                  )}
+                >
+                  <div className="mb-0.5 flex flex-wrap items-center gap-x-2 text-xs font-bold text-muted">
+                    <span>{m.role === "user" ? scout.firstName : "Helper"}</span>
+                    <span>{timeAgo(m.createdAt, now)}</span>
+                    {task && <span>· {task.title}</span>}
+                    {m.flagged === 1 && <span className="text-rose-600">🚩 Flagged for a leader</span>}
+                  </div>
+                  <p className="whitespace-pre-wrap">{m.content}</p>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </Card>
     </div>
   );
 }

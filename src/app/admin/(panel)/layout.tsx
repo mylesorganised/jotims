@@ -1,10 +1,12 @@
 import { Suspense } from "react";
 import { LogOut } from "lucide-react";
 import { leaderLogoutAction } from "@/app/actions/leader";
+import { HelperProvider } from "@/components/helper/helper";
 import { Logo } from "@/components/logo";
 import { NavLink } from "@/components/nav-link";
 import { getLeader } from "@/lib/auth";
 import { getReviewQueue } from "@/lib/data";
+import { helperEnabled } from "@/lib/helper/openrouter";
 
 // Signed-in pages read the session on every navigation, so they're allowed to
 // block rather than be prefetched as instant static shells.
@@ -50,7 +52,9 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
           ))}
         </nav>
       </header>
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <HelperProvider mode="leader" enabled={helperEnabled()}>
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-6 sm:px-6 sm:pt-8">{children}</main>
+      </HelperProvider>
     </div>
   );
 }

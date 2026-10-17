@@ -211,6 +211,7 @@ const ICON: Record<string, string> = {
   awarded: "🏅",
   revoked: "↩️",
   help: "🙋",
+  flag: "🚩",
   scout: "👤",
   leader: "🧑‍🏫",
 };

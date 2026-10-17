@@ -224,3 +224,22 @@ export async function requestTime() {
   await connection();
   return Date.now();
 }
+
+export type HelperMessageRow = typeof schema.helperMessages.$inferSelect;
+
+export async function logHelperMessages(rows: (typeof schema.helperMessages.$inferInsert)[]) {
+  if (!rows.length) return;
+  const db = await getDb();
+  await db.insert(schema.helperMessages).values(rows);
+}
+
+export async function getHelperMessages(scoutId: string, limit = 60) {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(schema.helperMessages)
+    .where(eq(schema.helperMessages.scoutId, scoutId))
+    .orderBy(desc(schema.helperMessages.createdAt), desc(schema.helperMessages.id))
+    .limit(limit);
+  return rows.reverse();
+}

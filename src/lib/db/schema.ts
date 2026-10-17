@@ -107,6 +107,20 @@ export const leaders = pgTable(
   (t) => [uniqueIndex("leaders_username_idx").on(t.username)],
 );
 
+/** Scouts' conversations with the AI helper, kept so leaders can read them. */
+export const helperMessages = pgTable("helper_messages", {
+  id: serial("id").primaryKey(),
+  scoutId: text("scout_id")
+    .notNull()
+    .references(() => scouts.id, { onDelete: "cascade" }),
+  badgeId: text("badge_id"),
+  taskId: text("task_id"),
+  role: text("role").$type<"user" | "assistant">().notNull(),
+  content: text("content").notNull(),
+  flagged: integer("flagged").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: jsonb("value").notNull(),
@@ -189,6 +203,17 @@ export const bootstrapSql = [
     last_login_at timestamptz
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS leaders_username_idx ON leaders (username)`,
+  `CREATE TABLE IF NOT EXISTS helper_messages (
+    id serial PRIMARY KEY,
+    scout_id text NOT NULL REFERENCES scouts(id) ON DELETE CASCADE,
+    badge_id text,
+    task_id text,
+    role text NOT NULL,
+    content text NOT NULL,
+    flagged integer NOT NULL DEFAULT 0,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS helper_messages_scout_idx ON helper_messages (scout_id, created_at DESC)`,
   `CREATE TABLE IF NOT EXISTS settings (
     key text PRIMARY KEY,
     value jsonb NOT NULL

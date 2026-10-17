@@ -12,6 +12,7 @@ import { getScoutOverview } from "@/lib/data";
 import { formatDate } from "@/lib/format";
 import { badgeProgress, lockedBy } from "@/lib/progress";
 import { LockedNotice } from "@/components/locked-notice";
+import { SetHelperContext } from "@/components/helper/helper";
 
 export async function generateMetadata({ params }: PageProps<"/badges/[badgeId]">): Promise<Metadata> {
   const badge = getBadge((await params).badgeId);
@@ -32,6 +33,7 @@ export default async function BadgePage({ params }: PageProps<"/badges/[badgeId]
 
   return (
     <div className="space-y-8">
+      <SetHelperContext badgeId={badge.id} label={badgeName(badge)} />
       <Link href="/home" className="inline-flex items-center gap-1.5 text-sm font-bold text-muted hover:text-brand-600">
         <ArrowLeft className="size-4" /> All badges
       </Link>

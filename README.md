@@ -37,6 +37,36 @@ leader can tick it off or sign it off on their page, which unlocks the next one.
 - Tasks are either **"You tick this off"** (done when they finish) or **"Leader
   checks this"** (waits for a leader to approve).
 
+## AI helper (optional)
+
+A floating **"Ask the helper"** button lets young people ask questions about
+the step they're on. Leaders get their own **"Leader helper"** in the admin
+area for questions about the app and the badges. It uses **GLM 5.3 Flash**
+through [OpenRouter](https://openrouter.ai) (about $0.03 per million tokens
+in, so a typical question costs a tiny fraction of a penny).
+
+- **What it knows**: how the app works, every badge and task, the exact step
+  the young person is on (with its tips, links and "stuck" fixes), and the
+  Morse, phonetic and semaphore charts. It's never given the answers to the
+  auto-checked puzzles, and it's told to give hints, not do the work.
+- **Safety**: written for ages 6–14; never asks for personal details; points
+  to a leader, "Ask for help" or Childline if someone seems worried or
+  unsafe. Messages that mention things like bullying or being hurt are
+  flagged: the young person's hand goes up on the dashboard and the chat is
+  highlighted. Every young person's chats are visible on their page in the
+  leaders' area.
+- **Privacy**: requests only go to OpenRouter providers that don't collect or
+  train on prompts. Names are never sent, only their section and the page
+  they're on.
+- **Limits**: 40 questions per person per hour.
+
+To switch it on, add an OpenRouter API key as `OPENROUTER_API_KEY`: in
+`.env.local` for your computer, and in Vercel (Settings → Environment
+Variables) for the live site, then redeploy. Without a key the button simply
+doesn't appear. Optional: `OPENROUTER_MODEL` to use a different model, and
+`OPENROUTER_ALLOW_DATA_COLLECTION=true` if no privacy-respecting provider is
+available.
+
 ## What leaders get (`/admin`)
 
 - **Dashboard**: who needs help, what's waiting for review, badges ready to

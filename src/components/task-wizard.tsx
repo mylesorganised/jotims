@@ -35,6 +35,7 @@ import type { StepDef, StepImage, TaskDef } from "@/content/types";
 import { fieldComplete, missingFields, type Missing } from "@/lib/answers";
 import type { AnswerValue, Answers, TaskStatus } from "@/lib/db/schema";
 import { Field } from "./fields";
+import { useHelperContext } from "./helper/helper";
 import { RichText } from "./rich-text";
 import { Tool } from "./tools";
 import { buttonClass, Callout, cn } from "./ui";
@@ -150,6 +151,12 @@ export function TaskWizard({ badge, task, nextTask, record, uploads: initialUplo
   };
 
   const current = task.steps[step];
+  useHelperContext({
+    badgeId: badge.id,
+    taskId: task.id,
+    step,
+    label: current ? `${task.title} · step ${step + 1}` : `${task.title} · finishing`,
+  });
 
   return (
     <div ref={top} className="scroll-mt-24 space-y-6">
