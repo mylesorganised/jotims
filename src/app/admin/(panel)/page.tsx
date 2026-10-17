@@ -6,6 +6,7 @@ import { AutoRefresh, SubmitButton } from "@/components/admin/form-bits";
 import { SubmissionCard } from "@/components/admin/submission-card";
 import { BadgeEmblem } from "@/components/badge-emblem";
 import { SectionPill } from "@/components/status";
+import { TourInvite } from "@/components/tour/tour-invite";
 import { Card, PageTitle } from "@/components/ui";
 import { BADGES, badgeName, badgesForSection, getBadge, getTask } from "@/content";
 import { requireLeader } from "@/lib/auth";
@@ -51,8 +52,13 @@ export default async function AdminDashboard() {
     <div className="space-y-8">
       <AutoRefresh seconds={20} />
       <PageTitle title={`Hi ${leader.name} 👋`} subtitle="Here's what's happening. This page refreshes by itself." />
+      <TourInvite
+        tourId="leader-start"
+        heading="First time here? Take the 1-minute tour"
+        text="Where to review work, sign off badges, add young people and change settings. You can rerun tours any time from the Leader helper."
+      />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5" data-tour="admin-stats">
         {stats.map(({ label, value, sub, icon: Icon, href, tone }) => (
           <Link key={label} href={href} className="rounded-2xl bg-white p-4 ring-1 ring-line shadow-card transition hover:shadow-lift">
             <span className={`grid size-9 place-items-center rounded-xl ${tone}`}>
@@ -66,7 +72,7 @@ export default async function AdminDashboard() {
       </div>
 
       {help.length > 0 && (
-        <section id="help" className="scroll-mt-28">
+        <section id="help" className="scroll-mt-28" data-tour="admin-hands-up">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-extrabold">
             <Hand className="size-5 text-rose-500" /> Hands up
           </h2>
@@ -103,6 +109,7 @@ export default async function AdminDashboard() {
 
       <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
         <section>
+          <div data-tour="admin-review-queue">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-lg font-extrabold">
               <Inbox className="size-5 text-amber-500" /> Waiting for review
@@ -122,6 +129,9 @@ export default async function AdminDashboard() {
             </div>
           )}
 
+          </div>
+
+          <div data-tour="admin-ready">
           <h2 id="ready" className="mb-3 mt-8 flex scroll-mt-28 items-center gap-2 text-lg font-extrabold">
             <BadgeCheck className="size-5 text-sky-500" /> Ready to sign off
           </h2>
@@ -153,6 +163,7 @@ export default async function AdminDashboard() {
               })}
             </div>
           )}
+          </div>
         </section>
 
         <section>
@@ -177,7 +188,7 @@ export default async function AdminDashboard() {
           </div>
 
           <h2 className="mb-3 mt-8 text-lg font-extrabold">Latest activity</h2>
-          <Card className="divide-y divide-line">
+          <Card className="divide-y divide-line" data-tour="admin-activity">
             {activity.length === 0 && <p className="p-4 text-sm text-muted">Nothing yet.</p>}
             {activity.map(({ activity: a, scout }) => (
               <div key={a.id} className="flex items-start gap-3 px-4 py-2.5 text-sm">

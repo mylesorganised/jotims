@@ -11,17 +11,21 @@ export function BadgeCard({
   progress,
   section,
   lockedBy,
+  tour,
 }: {
   badge: BadgeDef;
   progress: BadgeProgress;
   section: Section;
   /** the stage that has to be finished before this one opens */
   lockedBy?: BadgeDef | null;
+  /** extra walkthrough tags, e.g. "badge-first" */
+  tour?: string;
 }) {
   const recommended = badge.recommendedFor.includes(section);
   return (
     <Link
       href={`/badges/${badge.id}`}
+      data-tour={[`badge:${badge.id}`, tour].filter(Boolean).join(" ")}
       className={cn(
         "group relative flex flex-col gap-4 rounded-2xl p-5 ring-1 ring-line transition",
         lockedBy ? "bg-zinc-50" : "bg-white shadow-card hover:-translate-y-0.5 hover:shadow-lift hover:ring-brand-200",

@@ -58,6 +58,12 @@ in, so a typical question costs a tiny fraction of a penny).
 - **Privacy**: requests only go to OpenRouter providers that don't collect or
   train on prompts. Names are never sent, only their section and the page
   they're on.
+- **Knows their progress**: what each young person has finished, what's
+  waiting for a leader, what needs changes and what's left, so it suggests the
+  right next task.
+- **Points at things**: its replies include 👉 **Show me** buttons that
+  spotlight the place on screen (opening the right page first), and
+  **Walk me through it** buttons for step-by-step guidance.
 - **Limits**: 40 questions per person per hour.
 
 To switch it on, add an OpenRouter API key as `OPENROUTER_API_KEY`: in
@@ -66,6 +72,15 @@ Variables) for the live site, then redeploy. Without a key the button simply
 doesn't appear. Optional: `OPENROUTER_MODEL` to use a different model, and
 `OPENROUTER_ALLOW_DATA_COLLECTION=true` if no privacy-respecting provider is
 available.
+
+## Guided tours
+
+Spotlight walkthroughs dim the page and explain each part in turn: "Getting
+started" and "How tasks work" for young people; a dashboard tour, "Adding
+young people" and "Signing off badges" for leaders. They're offered on the
+first visit and can be rerun from the helper. Tours find things on the page
+by their `data-tour` tags; the places and tours are listed in
+`src/lib/tour/registry.ts`.
 
 ## What leaders get (`/admin`)
 
@@ -78,6 +93,9 @@ available.
   badge and task: tick off work done on paper, reopen tasks, sign off badges
   (with an optional note) or undo a sign-off.
 - **Badge tracker**: a grid of everyone × every badge, plus **CSV export**.
+- **Badge library**: every badge and task with its "what to look for" note,
+  and a **Preview** of each task exactly as young people see it (tools,
+  pictures and all; nothing is saved).
 - **Leaders**: proper accounts with a username and password. Add leaders,
   reset passwords and change your own.
 - **Settings**: event name, allow self sign-up, and an optional **group code**

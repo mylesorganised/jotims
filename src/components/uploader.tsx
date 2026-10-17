@@ -7,7 +7,7 @@ import { fileSize } from "@/lib/format";
 import { Callout, cn } from "./ui";
 
 export type UploadConfig = {
-  mode: "local" | "blob" | "none";
+  mode: "local" | "blob" | "none" | "preview";
   blobAccess: "private" | "public";
   scoutId: string;
   badgeId: string;
@@ -120,6 +120,16 @@ export function Uploader({
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
 
+  if (config.mode === "preview") {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-200 bg-white px-4 py-6 text-center opacity-80" data-tour="upload-box">
+        <Upload className="size-7 text-brand-500" />
+        <span className="font-bold text-brand-700">{accept === "image/*" ? "Add a photo or screenshot" : "Add a file"}</span>
+        <span className="text-xs text-muted">Young people tap here to upload. (Off in preview.)</span>
+      </div>
+    );
+  }
+
   if (config.mode === "none") {
     return (
       <Callout tone="info">
@@ -171,6 +181,7 @@ export function Uploader({
         <button
           type="button"
           disabled={busy > 0}
+          data-tour="upload-box"
           onClick={() => input.current?.click()}
           onDragOver={(e) => {
             e.preventDefault();

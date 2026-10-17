@@ -35,7 +35,7 @@ export function ScoutTable({ rows }: { rows: ScoutTableRow[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3" data-tour="scouts-search">
         <div className="relative min-w-56 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name" className={cn(inputClass, "pl-9")} />
@@ -57,7 +57,7 @@ export function ScoutTable({ rows }: { rows: ScoutTableRow[] }) {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-line shadow-card">
+      <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-line shadow-card" data-tour="scouts-table">
         <table className="w-full min-w-[44rem] text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs font-black uppercase tracking-wider text-muted">

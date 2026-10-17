@@ -78,9 +78,10 @@ export default async function ScoutDetailPage({ params }: PageProps<"/admin/scou
       </Card>
 
       <div className="space-y-5">
-        {badges.map((badge) => (
+        {badges.map((badge, i) => (
           <BadgeSection
             key={badge.id}
+            first={i === 0}
             badge={badge}
             scoutId={scout.id}
             firstName={scout.firstName}
@@ -125,7 +126,7 @@ export default async function ScoutDetailPage({ params }: PageProps<"/admin/scou
         </Card>
       </div>
 
-      <Card id="helper" className="scroll-mt-32 p-5 sm:p-6">
+      <Card id="helper" className="scroll-mt-32 p-5 sm:p-6" data-tour="person-chats">
         <h2 className="text-lg font-extrabold">Helper chats</h2>
         <p className="mb-4 text-sm text-muted">What {scout.firstName} has asked the AI helper (most recent last). Flagged messages also put their hand up on the dashboard.</p>
         {chats.length === 0 ? (
@@ -169,6 +170,7 @@ function BadgeSection({
   award,
   byTask,
   lock,
+  first,
 }: {
   badge: BadgeDef;
   scoutId: string;
@@ -177,6 +179,7 @@ function BadgeSection({
   award: { signedOffBy: string; signedOffAt: Date; note: string | null } | undefined;
   byTask: Map<string, ProgressRow>;
   lock: BadgeDef | null;
+  first: boolean;
 }) {
   const progress = badgeProgress(badge, statuses, Boolean(award));
   const counted = new Set(progress.requiredTaskIds);
@@ -218,7 +221,7 @@ function BadgeSection({
   };
 
   return (
-    <Card id={badge.id} className="scroll-mt-32 overflow-hidden">
+    <Card id={badge.id} className="scroll-mt-32 overflow-hidden" data-tour={first ? "person-badge" : undefined}>
       <div className="flex flex-wrap items-center gap-4 border-b border-line p-4 sm:p-5">
         <BadgeEmblem badge={badge} size={52} />
         <div className="min-w-0 flex-1">
@@ -252,7 +255,11 @@ function BadgeSection({
             </form>
           </div>
         ) : (
-          <form action={signOffBadgeAction.bind(null, scoutId, badge.id)} className="flex flex-wrap items-center gap-2">
+          <form
+            action={signOffBadgeAction.bind(null, scoutId, badge.id)}
+            className="flex flex-wrap items-center gap-2"
+            data-tour={first ? "person-signoff" : undefined}
+          >
             <input name="note" placeholder="Note (optional)" className={cn(inputClass, "h-9 w-44 py-1.5 text-sm")} />
             <SubmitButton
               variant={progress.state === "ready" ? "success" : "secondary"}

@@ -59,7 +59,7 @@ export default async function BadgeTrackerPage({ searchParams }: PageProps<"/adm
         <Legend />
       </div>
 
-      <Card className="overflow-x-auto">
+      <Card className="overflow-x-auto" data-tour="tracker-grid">
         <table className="w-full min-w-[56rem] text-sm">
           <thead>
             <tr className="border-b border-line">

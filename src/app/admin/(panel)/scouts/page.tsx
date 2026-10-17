@@ -46,7 +46,7 @@ export default async function ScoutsPage() {
         title="Young people"
         subtitle={`${rows.length} on the list. They log in with their first name, last name and date of birth.`}
         actions={
-          <a href="/api/admin/export" download className={buttonClass("secondary", "sm")}>
+          <a href="/api/admin/export" download className={buttonClass("secondary", "sm")} data-tour="scouts-export">
             <Download className="size-4" /> Export CSV
           </a>
         }
@@ -54,11 +54,11 @@ export default async function ScoutsPage() {
       <ScoutTable rows={rows} />
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="p-5 sm:p-6">
+        <Card className="p-5 sm:p-6" data-tour="scouts-add">
           <h2 className="mb-4 text-lg font-extrabold">Add one person</h2>
           <AddScoutForm />
         </Card>
-        <Card className="p-5 sm:p-6">
+        <Card className="p-5 sm:p-6" data-tour="scouts-import">
           <h2 className="mb-4 text-lg font-extrabold">Add lots at once</h2>
           <ImportScoutsForm />
         </Card>

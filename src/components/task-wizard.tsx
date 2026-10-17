@@ -59,11 +59,26 @@ export type WizardProps = {
   scout: { id: string; firstName: string };
   uploadMode: UploadConfig["mode"];
   blobAccess: UploadConfig["blobAccess"];
+  /** leaders' preview: everything works on screen, nothing is saved or sent */
+  preview?: boolean;
+  /** where badge links point (scouts: /badges, leaders' preview: /admin/library) */
+  basePath?: string;
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-export function TaskWizard({ badge, task, nextTask, record, uploads: initialUploads, scout, uploadMode, blobAccess }: WizardProps) {
+export function TaskWizard({
+  badge,
+  task,
+  nextTask,
+  record,
+  uploads: initialUploads,
+  scout,
+  uploadMode,
+  blobAccess,
+  preview = false,
+  basePath = "/badges",
+}: WizardProps) {
   const router = useRouter();
   const status: TaskStatus | "todo" = record?.status ?? "todo";
   const locked = status === "submitted" || status === "done";
@@ -88,6 +103,7 @@ export function TaskWizard({ badge, task, nextTask, record, uploads: initialUplo
 
   const flush = useCallback(async () => {
     window.clearTimeout(timer.current);
+    if (preview) dirty.current = false;
     if (!dirty.current) return;
     dirty.current = false;
     setSave("saving");
@@ -98,7 +114,7 @@ export function TaskWizard({ badge, task, nextTask, record, uploads: initialUplo
       dirty.current = true;
       setSave("error");
     }
-  }, [badge.id, task.id]);
+  }, [badge.id, task.id, preview]);
 
   useEffect(() => () => void flush(), [flush]);
 
@@ -150,6 +166,31 @@ export function TaskWizard({ badge, task, nextTask, record, uploads: initialUplo
     return fields.every((f) => fieldComplete(f, answers[f.id], counts[f.id] ?? 0));
   };
 
+  // When a walkthrough asks for part of a task, go to a step that has it.
+  useEffect(() => {
+    const onTarget = (e: Event) => {
+      const target = (e as CustomEvent<string>).detail;
+      const has: Record<string, (s: StepDef) => boolean> = {
+        "step-content": () => true,
+        "next-step": () => true,
+        "step-nav": () => true,
+        "step-todo": (s) => Boolean(s.todo?.length),
+        "step-answers": (s) => Boolean(s.fields?.length),
+        "upload-box": (s) => Boolean(s.fields?.some((f) => f.kind === "upload")),
+      };
+      const test = has[target];
+      if (!test) return;
+      setStep((currentStep) => {
+        const here = task.steps[currentStep];
+        if (here && test(here)) return currentStep;
+        const found = task.steps.findIndex(test);
+        return found === -1 ? currentStep : found;
+      });
+    };
+    window.addEventListener("joti-tour-target", onTarget);
+    return () => window.removeEventListener("joti-tour-target", onTarget);
+  }, [task.steps]);
+
   const current = task.steps[step];
   useHelperContext({
     badgeId: badge.id,
@@ -161,13 +202,19 @@ export function TaskWizard({ badge, task, nextTask, record, uploads: initialUplo
   return (
     <div ref={top} className="scroll-mt-24 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href={`/badges/${badge.id}`} className="inline-flex items-center gap-1.5 text-sm font-bold text-muted hover:text-brand-600">
+        <Link href={`${basePath}/${badge.id}`} className="inline-flex items-center gap-1.5 text-sm font-bold text-muted hover:text-brand-600">
           <ArrowLeft className="size-4" /> {badge.name}
         </Link>
-        <SaveIndicator state={save} locked={locked} />
+        {preview ? (
+          <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">Preview: nothing is saved</span>
+        ) : (
+          <span data-tour="save-indicator">
+            <SaveIndicator state={save} locked={locked} />
+          </span>
+        )}
       </div>
 
-      <header className="flex flex-wrap items-start gap-4">
+      <header className="flex flex-wrap items-start gap-4" data-tour="task-header">
         <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white text-3xl shadow-card ring-1 ring-line sm:size-16 sm:text-4xl">
           {task.emoji}
         </span>
@@ -191,8 +238,8 @@ export function TaskWizard({ badge, task, nextTask, record, uploads: initialUplo
             )}
           </div>
         </div>
-        <div className="w-full sm:w-auto">
-          <HelpButton badgeId={badge.id} taskId={task.id} requested={Boolean(record?.helpRequestedAt)} />
+        <div className="w-full sm:w-auto" data-tour="help-button">
+          {!preview && <HelpButton badgeId={badge.id} taskId={task.id} requested={Boolean(record?.helpRequestedAt)} />}
         </div>
       </header>
 
@@ -204,7 +251,7 @@ export function TaskWizard({ badge, task, nextTask, record, uploads: initialUplo
 
         <div className="min-w-0 space-y-4">
           {current ? (
-            <section key={step} className="animate-fade-up rounded-3xl bg-white p-5 shadow-card ring-1 ring-line sm:p-7">
+            <section key={step} className="animate-fade-up rounded-3xl bg-white p-5 shadow-card ring-1 ring-line sm:p-7" data-tour="step-content">
               <StepView
                 step={current}
                 index={step}
@@ -240,6 +287,8 @@ export function TaskWizard({ badge, task, nextTask, record, uploads: initialUplo
               onDone={() => setCelebrate(true)}
               flush={flush}
               onReopen={() => setStep(0)}
+              preview={preview}
+              basePath={basePath}
             />
           )}
 
@@ -248,7 +297,7 @@ export function TaskWizard({ badge, task, nextTask, record, uploads: initialUplo
               <button type="button" onClick={() => go(step - 1)} disabled={step === 0} className={buttonClass("secondary", "lg")}>
                 <ArrowLeft className="size-5" /> Back
               </button>
-              <button type="button" onClick={() => go(step + 1)} className={buttonClass("primary", "lg")}>
+              <button type="button" onClick={() => go(step + 1)} className={buttonClass("primary", "lg")} data-tour="next-step">
                 {step === task.steps.length - 1 ? (locked ? "Summary" : "Check & finish") : "Next step"} <ArrowRight className="size-5" />
               </button>
             </div>
@@ -327,7 +376,7 @@ function StepNav({
   return (
     <>
       {/* phones: a segmented progress bar */}
-      <div className="lg:hidden">
+      <div className="lg:hidden" data-tour="step-nav">
         <div className="mb-2 flex items-center justify-between text-sm font-bold">
           <span className="text-brand-700">{step < steps.length ? `Step ${step + 1} of ${steps.length}` : "Last step"}</span>
           <span className="truncate pl-3 text-muted">{items[step]}</span>
@@ -339,6 +388,7 @@ function StepNav({
               type="button"
               onClick={() => go(i)}
               aria-label={`Go to ${title}`}
+              data-tour={i === steps.length ? "finish-step" : undefined}
               className={cn(
                 "h-2.5 flex-1 rounded-full transition",
                 i === step ? "bg-brand-500" : i < step || (i < steps.length && stepDone(steps[i])) ? "bg-brand-300" : "bg-zinc-200",
@@ -349,7 +399,7 @@ function StepNav({
       </div>
 
       {/* larger screens: a list of steps down the side */}
-      <nav className="hidden lg:block">
+      <nav className="hidden lg:block" data-tour="step-nav">
         <ol className="sticky top-24 space-y-1">
           {items.map((title, i) => {
             const isFinish = i === steps.length;
@@ -359,6 +409,7 @@ function StepNav({
                 <button
                   type="button"
                   onClick={() => go(i)}
+                  data-tour={isFinish ? "finish-step" : undefined}
                   className={cn(
                     "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-bold transition",
                     i === step ? "bg-white text-ink shadow-card ring-1 ring-line" : "text-muted hover:bg-white/60 hover:text-ink",
@@ -441,7 +492,7 @@ function StepView({
       ))}
 
       {step.todo && (
-        <ol className="space-y-2">
+        <ol className="space-y-2" data-tour="step-todo">
           {step.todo.map((item, i) => (
             <li key={i}>
               {/* A div rather than a button, so the text can hold links (which mustn't tick the row). */}
@@ -564,7 +615,7 @@ function StepView({
       )}
 
       {step.fields && step.fields.length > 0 && (
-        <div className="space-y-5 rounded-2xl bg-canvas p-4 ring-1 ring-line sm:p-5">
+        <div className="space-y-5 rounded-2xl bg-canvas p-4 ring-1 ring-line sm:p-5" data-tour="step-answers">
           <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-brand-600">
             <Pencil className="size-4" /> Your answers
           </div>
@@ -679,6 +730,8 @@ function FinishView({
   onDone,
   flush,
   onReopen,
+  preview,
+  basePath,
 }: {
   status: TaskStatus | "todo";
   review: "self" | "leader";
@@ -691,17 +744,20 @@ function FinishView({
   onDone: () => void;
   flush: () => Promise<void>;
   onReopen: () => void;
+  preview: boolean;
+  basePath: string;
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [previewNote, setPreviewNote] = useState(false);
 
   const next = nextTask && (
-    <Link href={`/badges/${badgeId}/${nextTask.id}`} className={buttonClass("primary", "lg")}>
+    <Link href={`${basePath}/${badgeId}/${nextTask.id}`} className={buttonClass("primary", "lg")}>
       Next: {nextTask.emoji} {nextTask.title} <ArrowRight className="size-5" />
     </Link>
   );
   const back = (
-    <Link href={`/badges/${badgeId}`} className={buttonClass("secondary", "lg")}>
+    <Link href={`${basePath}/${badgeId}`} className={buttonClass("secondary", "lg")}>
       Back to the badge
     </Link>
   );
@@ -741,7 +797,9 @@ function FinishView({
   }
 
   const submit = () =>
-    start(async () => {
+    preview
+      ? setPreviewNote(true)
+      : start(async () => {
       setError(null);
       await flush();
       const result = await submitTaskAction(badgeId, taskId, answers);
@@ -794,9 +852,16 @@ function FinishView({
         <p className="mt-4 text-sm font-semibold text-rose-700">Made the changes your leader asked for? Send it again below.</p>
       )}
       {error && <Callout tone="error" className="mt-4">{error}</Callout>}
+      {previewNote && (
+        <Callout tone="info" className="mt-4" title="Preview">
+          {review === "leader"
+            ? "Here a young person's task is sent to the Review queue for a leader to check."
+            : "Here the task is marked as done and counts towards their badge."}
+        </Callout>
+      )}
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <button type="button" onClick={submit} disabled={pending || missing.length > 0} className={buttonClass(review === "leader" ? "primary" : "success", "lg")}>
+        <button type="button" onClick={submit} disabled={pending || (!preview && missing.length > 0)} className={buttonClass(review === "leader" ? "primary" : "success", "lg")}>
           {pending ? (
             <LoaderCircle className="size-5 animate-spin" />
           ) : review === "leader" ? (

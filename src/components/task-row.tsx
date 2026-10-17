@@ -20,7 +20,7 @@ export function TaskRow({
 }) {
   if (locked) {
     return (
-      <div className="flex items-center gap-3.5 rounded-2xl bg-zinc-50 p-3.5 ring-1 ring-line sm:p-4" aria-disabled>
+      <div className="flex items-center gap-3.5 rounded-2xl bg-zinc-50 p-3.5 ring-1 ring-line sm:p-4" aria-disabled data-tour={`task:${badge.id}/${task.id}`}>
         <span className={cn("grid shrink-0 place-items-center rounded-xl bg-zinc-100 text-2xl grayscale", compact ? "size-11" : "size-12")}>
           {task.emoji}
         </span>
@@ -35,6 +35,7 @@ export function TaskRow({
   return (
     <Link
       href={`/badges/${badge.id}/${task.id}`}
+      data-tour={`task:${badge.id}/${task.id}`}
       className={cn(
         "group flex items-center gap-3.5 rounded-2xl bg-white p-3.5 ring-1 ring-line transition hover:ring-brand-300 hover:shadow-card sm:p-4",
         state === "changes" && "ring-2 ring-rose-300",

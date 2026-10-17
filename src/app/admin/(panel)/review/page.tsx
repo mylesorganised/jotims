@@ -53,7 +53,7 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
           <p className="text-sm text-muted">New submissions appear here automatically.</p>
         </Card>
       ) : (
-        <div className="grid gap-2 lg:grid-cols-2">
+        <div className="grid gap-2 lg:grid-cols-2" data-tour="review-list">
           {items.map(({ progress, scout }) => (
             <SubmissionCard key={progress.id} progress={progress} scout={scout} now={now} />
           ))}

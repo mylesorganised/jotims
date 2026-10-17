@@ -4,6 +4,7 @@ import { leaderLogoutAction } from "@/app/actions/leader";
 import { HelperProvider } from "@/components/helper/helper";
 import { Logo } from "@/components/logo";
 import { NavLink } from "@/components/nav-link";
+import { TourProvider } from "@/components/tour/tour";
 import { getLeader } from "@/lib/auth";
 import { getReviewQueue } from "@/lib/data";
 import { helperEnabled } from "@/lib/helper/openrouter";
@@ -13,16 +14,18 @@ import { helperEnabled } from "@/lib/helper/openrouter";
 export const instant = false;
 
 const NAV = [
-  { href: "/admin", label: "Dashboard", exact: true },
-  { href: "/admin/review", label: "Review", count: true },
-  { href: "/admin/scouts", label: "Young people" },
-  { href: "/admin/badges", label: "Badge tracker" },
-  { href: "/admin/leaders", label: "Leaders" },
-  { href: "/admin/settings", label: "Settings" },
+  { href: "/admin", label: "Dashboard", exact: true, tour: "admin-nav-dashboard" },
+  { href: "/admin/review", label: "Review", count: true, tour: "admin-nav-review" },
+  { href: "/admin/scouts", label: "Young people", tour: "admin-nav-scouts" },
+  { href: "/admin/badges", label: "Badge tracker", tour: "admin-nav-badges" },
+  { href: "/admin/library", label: "Badge library", tour: "admin-nav-library" },
+  { href: "/admin/leaders", label: "Leaders", tour: "admin-nav-leaders" },
+  { href: "/admin/settings", label: "Settings", tour: "admin-nav-settings" },
 ];
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
+    <TourProvider scope="leader">
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-30 border-b border-line/80 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
@@ -39,6 +42,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
               key={item.href}
               href={item.href}
               exact={item.exact}
+              tour={item.tour}
               badge={
                 item.count ? (
                   <Suspense fallback={null}>
@@ -56,6 +60,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-6 sm:px-6 sm:pt-8">{children}</main>
       </HelperProvider>
     </div>
+    </TourProvider>
   );
 }
 

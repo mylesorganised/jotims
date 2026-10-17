@@ -57,7 +57,7 @@ export default async function BadgePage({ params }: PageProps<"/badges/[badgeId]
               </a>
             </div>
           </div>
-          <div className="flex items-center gap-4 sm:flex-col sm:items-center sm:gap-2">
+          <div className="flex items-center gap-4 sm:flex-col sm:items-center sm:gap-2" data-tour="badge-progress">
             <ProgressRing value={progress.percent} size={92} stroke={9} color={progress.state === "awarded" ? "#059669" : badge.ring}>
               <span className="text-xl font-black">{progress.percent}%</span>
             </ProgressRing>
@@ -84,7 +84,7 @@ export default async function BadgePage({ params }: PageProps<"/badges/[badgeId]
       )}
       {lock && <LockedNotice before={lock} />}
 
-      <div className="space-y-8">
+      <div className="space-y-8" data-tour="badge-tasks">
         {groupParts(badge.parts).map((part, i) => {
           if (part.kind === "tasks") {
             return (

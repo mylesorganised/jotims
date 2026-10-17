@@ -5,6 +5,7 @@ import { logoutAction } from "@/app/actions/scout";
 import { Logo } from "@/components/logo";
 import { HelperProvider } from "@/components/helper/helper";
 import { NavLink } from "@/components/nav-link";
+import { TourProvider } from "@/components/tour/tour";
 import { ButtonLink } from "@/components/ui";
 import { getCurrentScout } from "@/lib/auth";
 import { helperEnabled } from "@/lib/helper/openrouter";
@@ -15,15 +16,16 @@ export const instant = false;
 
 export default function ScoutLayout({ children }: LayoutProps<"/">) {
   return (
+    <TourProvider scope="scout">
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-30 border-b border-line/80 bg-white/85 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-5xl items-center gap-3 px-4 sm:px-6">
           <Logo href="/home" />
           <nav className="ml-4 hidden items-center gap-1 sm:flex">
-            <NavLink href="/home" match="/badges">
+            <NavLink href="/home" match="/badges" tour="nav-home">
               My badges
             </NavLink>
-            <NavLink href="/toolbox">Code toolbox</NavLink>
+            <NavLink href="/toolbox" tour="nav-toolbox">Code toolbox</NavLink>
           </nav>
           <div className="ml-auto">
             <Suspense fallback={<div className="h-9 w-28" />}>
@@ -32,16 +34,17 @@ export default function ScoutLayout({ children }: LayoutProps<"/">) {
           </div>
         </div>
         <nav className="mx-auto flex max-w-5xl gap-1 px-3 pb-2 sm:hidden">
-          <NavLink href="/home" match="/badges">
+          <NavLink href="/home" match="/badges" tour="nav-home">
             My badges
           </NavLink>
-          <NavLink href="/toolbox">Code toolbox</NavLink>
+          <NavLink href="/toolbox" tour="nav-toolbox">Code toolbox</NavLink>
         </nav>
       </header>
       <HelperProvider mode="scout" enabled={helperEnabled()}>
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-6 sm:px-6 sm:pt-10">{children}</main>
       </HelperProvider>
     </div>
+    </TourProvider>
   );
 }
 

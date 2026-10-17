@@ -2,7 +2,8 @@ import "server-only";
 import { BADGES, badgeName, getBadge, getTask, sectionName, type BadgeDef, type FieldDef, type StepDef, type TaskDef } from "@/content";
 import type { Section } from "@/lib/db/schema";
 import { CHARACTERS, MORSE, PHONETIC, SEMAPHORE } from "@/lib/codes";
-import { TASK_STATE_LABEL, type TaskState } from "@/lib/progress";
+import { badgeProgress, lockedBy, TASK_STATE_LABEL, type TaskState } from "@/lib/progress";
+import { ANCHORS, TOURS, type TourScope } from "@/lib/tour/registry";
 
 // Everything the AI helper is told. Built from the same content the app shows,
 // so it never drifts out of date. Answers to auto-checked puzzles are left out
@@ -33,6 +34,7 @@ HOW THE LEADERS' AREA WORKS (/admin)
 - Review: the queue of "Leader checks this" tasks, oldest first, and an "All recent work" tab. Each submission shows every answer and upload, a "What to look for" note, and auto-check results for puzzles. Approve (optionally with a message) or "Ask for changes" (with a message the young person sees). "Next waiting" jumps to the next one.
 - Young people: search, filter by section, add one person, or paste a list (First, Last, DD/MM/YYYY, Section, one per line, straight from a spreadsheet or OSM). Each person's page shows every badge and task: "Tick off" marks a task done (e.g. done on paper), the reopen arrow puts it back to in progress, "Sign off badge" (or "Sign off anyway" if tasks aren't all done) awards it, "Undo" removes a sign-off. Signing off an earlier stage unlocks the next stage for that person. Their helper chats are shown there too. Edit details or delete the person (deletes their work and files).
 - Badge tracker: a grid of everyone × every badge (green tick = signed off, blue = ready to sign off, ring = % done, amber dot = waiting for review), filter by section, and "Export CSV".
+- Badge library: every badge and task with "what to look for" notes, and a Preview of each task exactly as young people see it (nothing is saved in a preview).
 - Settings: event name, "Let new young people add themselves" (turn off once everyone is added), and an optional group code young people must type to log in.
 - Young people log in with first name, last name and date of birth. If a login doesn't work, check spelling and birthday on their page.
 - Uploaded evidence is private and only visible to the young person and leaders.
@@ -127,8 +129,9 @@ export function describeTask(task: TaskDef, currentStep?: number) {
     .join("\n\n");
 }
 
-export function describeBadge(badge: BadgeDef, statuses?: Record<string, TaskState | undefined>) {
-  const status = (id: string) => (statuses ? ` [${TASK_STATE_LABEL[statuses[id] ?? "todo"]}]` : "");
+export function describeBadge(badge: BadgeDef, statuses?: Record<string, TaskState | undefined>, withIds = false) {
+  const status = (id: string) =>
+    `${statuses ? ` [${TASK_STATE_LABEL[statuses[id] ?? "todo"]}]` : ""}${withIds ? ` [task:${badge.id}/${id}]` : ""}`;
   const lines = [`# Badge: ${badgeName(badge)}`, badge.tagline, badge.intro];
   if (badge.prerequisite) lines.push(`Unlocks after ${badgeName(getBadge(badge.prerequisite)!)} is finished.`);
   for (const part of badge.parts) {
@@ -177,19 +180,88 @@ function codesReference(tools: Set<string>) {
   return parts.join("\n\n");
 }
 
+function pointingGuide(scope: TourScope, path?: string) {
+  const places = ANCHORS.filter((a) => a.scope === scope)
+    .map((a) => `- ${a.id}: ${a.title} (${a.where})`)
+    .join("\n");
+  const tours = TOURS.filter((t) => t.scope === scope)
+    .map((t) => `- ${t.id}: "${t.title}" (${t.intro})`)
+    .join("\n");
+  const dynamic =
+    scope === "scout"
+      ? "\n- badge:<badge id>: a badge's card on My badges (badge ids are shown as [badge:…] in their progress)\n- task:<badge id>/<task id>: a task on its badge page (shown as [task:…] in the badge details)"
+      : "";
+  return `POINTING AT THINGS ON SCREEN
+You can show them exactly where things are in the app:
+- Put [[show:ID]] straight after the words that mention a place. It becomes a "Show me" button that highlights it (and opens the right page).
+- If you describe 2 or more places in order, add ONE [[tour:ID1,ID2,ID3]] at the very end. It becomes a "Walk me through it" button that highlights each place in turn.
+- To offer a full guided tour, add [[tour:TOUR_ID]] using a tour below.
+- Use these whenever you explain where something is or how to do something in the app. Only use IDs listed here; never make one up, and never write the IDs anywhere else.
+${path ? `They are on the page ${path}.\n` : ""}PLACES:
+${places}${dynamic}
+GUIDED TOURS:
+${tours}`;
+}
+
 // ------------------------------------------------------------ system prompts
+
+type Statuses = Record<string, Record<string, TaskState | undefined>>;
+
+/** What this young person has finished, started, and has left, badge by badge. */
+export function progressSummary(section: Section, statuses: Statuses, awarded: Set<string>) {
+  const lines: string[] = [];
+  for (const badge of BADGES.filter((b) => b.sections.includes(section))) {
+    const name = `${badgeName(badge)} [badge:${badge.id}]`;
+    if (awarded.has(badge.id)) {
+      lines.push(`- ${name}: FINISHED AND SIGNED OFF by a leader. Don't suggest it again.`);
+      continue;
+    }
+    const before = lockedBy(badge, statuses, (id) => awarded.has(id));
+    if (before) {
+      lines.push(`- ${name}: LOCKED until they finish ${badgeName(before)}.`);
+      continue;
+    }
+    const mine = statuses[badge.id] ?? {};
+    const p = badgeProgress(badge, mine, false);
+    const titles = (ids: string[]) => ids.map((id) => getTask(badge, id)!.title).join("; ");
+    const by = (state: TaskState) => badge.tasks.filter((t) => (mine[t.id] ?? "todo") === state).map((t) => t.id);
+    if (p.state === "ready") {
+      lines.push(`- ${name}: ALL TASKS DONE, waiting for a leader to sign off the badge.`);
+      continue;
+    }
+    if (p.state === "not-started") {
+      lines.push(`- ${name}: not started (${p.required} tasks).`);
+      continue;
+    }
+    const parts = [`- ${name}: in progress, ${p.done} of ${p.required} tasks done.`];
+    const done = by("done");
+    const waiting = by("submitted");
+    const changes = by("changes");
+    const draft = by("draft");
+    const todo = p.requiredTaskIds.filter((id) => (mine[id] ?? "todo") === "todo");
+    if (done.length) parts.push(`Done: ${titles(done)}.`);
+    if (changes.length) parts.push(`A LEADER ASKED FOR CHANGES on: ${titles(changes)}.`);
+    if (waiting.length) parts.push(`Waiting for a leader to check: ${titles(waiting)}.`);
+    if (draft.length) parts.push(`Started but not finished: ${titles(draft)}.`);
+    if (todo.length) parts.push(`Not started yet: ${titles(todo)}.`);
+    lines.push(parts.join(" "));
+  }
+  return lines.join("\n");
+}
 
 export function scoutSystemPrompt(input: {
   section: Section;
   badgeId?: string;
   taskId?: string;
   step?: number;
-  statuses: Record<string, Record<string, TaskState | undefined>>;
-  lockedBadgeIds: string[];
+  statuses: Statuses;
+  awardedBadgeIds: string[];
+  path?: string;
 }) {
   const badge = input.badgeId ? getBadge(input.badgeId) : undefined;
   const task = badge && input.taskId ? getTask(badge, input.taskId) : undefined;
   const tools = new Set((task?.steps ?? []).flatMap((s) => s.tools ?? []));
+  const awarded = new Set(input.awardedBadgeIds);
 
   const where = task
     ? `They are working on the task "${task.title}" in ${badgeName(badge!)}${input.step !== undefined ? `, on step ${input.step + 1}` : ""}.`
@@ -201,20 +273,19 @@ export function scoutSystemPrompt(input: {
     "You are the friendly helper inside the PG Scouts JOTA-JOTI badge app. JOTA-JOTI is Jamboree On The Air and Jamboree On The Internet, when Scouts around the world chat by radio and online.",
     SAFETY_RULES,
     `THE YOUNG PERSON: a ${sectionName(input.section)} (${input.section === "beavers" ? "about 6 to 8, keep it very simple" : input.section === "cubs" ? "about 8 to 10" : "about 10 to 14"}). ${where}`,
-    input.lockedBadgeIds.length
-      ? `Locked for them right now (they must finish the previous stage first): ${input.lockedBadgeIds.map((id) => badgeName(getBadge(id)!)).join(", ")}.`
-      : "",
+    `THEIR PROGRESS (use this whenever they ask what to do next or where to start; never suggest something they've already finished; a leader's requested changes come first, then tasks they've started, then new ones; locked stages can't be started yet):\n${progressSummary(input.section, input.statuses, awarded)}`,
     SCOUT_APP_GUIDE,
     task ? describeTask(task, input.step) : "",
-    badge ? describeBadge(badge, input.statuses[badge.id]) : "",
-    `BADGES AVAILABLE TO THEM:\n${catalogue(input.section)}`,
+    badge ? describeBadge(badge, input.statuses[badge.id], true) : "",
+    `ALL BADGES AVAILABLE TO THEM:\n${catalogue(input.section)}`,
+    pointingGuide("scout", input.path),
     codesReference(tools),
   ]
     .filter(Boolean)
     .join("\n\n");
 }
 
-export function leaderSystemPrompt() {
+export function leaderSystemPrompt(path?: string) {
   const detail = BADGES.map((b) =>
     [
       describeBadge(b),
@@ -224,7 +295,7 @@ export function leaderSystemPrompt() {
       ),
     ].join("\n"),
   ).join("\n\n");
-  return [LEADER_RULES, LEADER_APP_GUIDE, SCOUT_APP_GUIDE, `ALL BADGES IN THE APP:\n\n${detail}`].join("\n\n");
+  return [LEADER_RULES, LEADER_APP_GUIDE, SCOUT_APP_GUIDE, pointingGuide("leader", path), `ALL BADGES IN THE APP:\n\n${detail}`].join("\n\n");
 }
 
 /** Messages that suggest a young person may need an adult to check in. */

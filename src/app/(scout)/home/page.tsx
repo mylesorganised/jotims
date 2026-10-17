@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Award, CircleCheck, Clock, MessageSquare, Wrench } from "lucide-react";
 import { BadgeCard } from "@/components/badge-card";
 import { SectionPill } from "@/components/status";
+import { TourInvite } from "@/components/tour/tour-invite";
 import { ButtonLink, Card } from "@/components/ui";
 import { badgeName, badgesForSection, getBadge, getTask, type BadgeFamily } from "@/content";
 import { requireScout } from "@/lib/auth";
@@ -52,6 +53,13 @@ export default async function HomePage() {
     .map(describe)
     .find((x) => x !== null);
 
+  // Walkthrough targets: the first badge they can work on, and the first locked one.
+  const firstOpen =
+    badges.find((b) => !b.lock && b.progress.state === "in-progress")?.badge.id ??
+    badges.find((b) => !b.lock && b.progress.state !== "awarded")?.badge.id ??
+    badges[0]?.badge.id;
+  const firstLocked = badges.find((b) => b.lock)?.badge.id;
+
   const families = (["communicator", "digital-citizen", "digital-maker"] as const).map((family) => ({
     family,
     items: badges.filter((b) => b.badge.family === family),
@@ -72,7 +80,7 @@ export default async function HomePage() {
               ? "Pick a badge below to get started. Each task walks you through step by step."
               : "Great work so far. Keep going!"}
           </p>
-          <dl className="mt-6 grid max-w-xl grid-cols-3 gap-3">
+          <dl className="mt-6 grid max-w-xl grid-cols-3 gap-3" data-tour="home-stats">
             {[
               { label: "Tasks done", value: tasksDone, icon: CircleCheck },
               { label: "With a leader", value: waiting, icon: Clock },
@@ -89,8 +97,14 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <TourInvite
+        tourId="scout-start"
+        heading="New here? Take a quick tour 🧭"
+        text="See where your badges are, how tasks work, and where to get help. It takes about a minute."
+      />
+
       {(changes.length > 0 || approved.length > 0 || current) && (
-        <section className="grid gap-4 md:grid-cols-2">
+        <section className="grid gap-4 md:grid-cols-2" data-tour="home-messages">
           {changes.map(({ badge, task, row }) => (
             <Card key={row.id} className="border-l-4 border-l-rose-400 p-5">
               <div className="flex items-center gap-2 text-sm font-bold text-rose-700">
@@ -141,7 +155,14 @@ export default async function HomePage() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map(({ badge, progress, lock }) => (
-              <BadgeCard key={badge.id} badge={badge} progress={progress} section={scout.section} lockedBy={lock} />
+              <BadgeCard
+                key={badge.id}
+                badge={badge}
+                progress={progress}
+                section={scout.section}
+                lockedBy={lock}
+                tour={badge.id === firstOpen ? "badge-first" : badge.id === firstLocked ? "badge-locked" : undefined}
+              />
             ))}
           </div>
         </section>
@@ -149,6 +170,7 @@ export default async function HomePage() {
 
       <Link
         href="/toolbox"
+        data-tour="toolbox-card"
         className="flex items-center gap-4 rounded-2xl bg-white p-5 ring-1 ring-line shadow-card transition hover:shadow-lift"
       >
         <span className="grid size-12 place-items-center rounded-xl bg-teal-brand/10 text-teal-brand">

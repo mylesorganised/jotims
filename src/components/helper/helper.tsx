@@ -1,8 +1,10 @@
 "use client";
 
 import { createContext, use, useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUp, Bot, RotateCcw, Sparkles, Square, X } from "lucide-react";
+import { ArrowUp, Bot, Compass, MousePointerClick, Play, RotateCcw, Sparkles, Square, X } from "lucide-react";
+import { getTour } from "@/lib/tour/registry";
 import { RichText } from "../rich-text";
+import { useTour } from "../tour/tour";
 import { cn } from "../ui";
 
 export type HelperMode = "scout" | "leader";
@@ -39,18 +41,81 @@ export function SetHelperContext(props: HelperContextValue) {
   return null;
 }
 
-function suggestions(mode: HelperMode, context: HelperContextValue | null) {
+type Suggestion = { label: string; tour?: string };
+
+function suggestions(mode: HelperMode, context: HelperContextValue | null): Suggestion[] {
   if (mode === "leader") {
-    return ["How do I sign off a badge?", "What should I look for in the step tracker task?", "How do I add my whole section at once?"];
+    const path = typeof window === "undefined" ? "" : window.location.pathname;
+    return [
+      path.startsWith("/admin/scouts/")
+        ? { label: "🧭 Show me how to sign off badges", tour: "leader-person" }
+        : path === "/admin/scouts"
+          ? { label: "🧭 Show me how to add young people", tour: "leader-people" }
+          : { label: "🧭 Give me a tour of the leaders' area", tour: "leader-start" },
+      { label: "How do I sign off a badge?" },
+      { label: "What should I look for in the step tracker task?" },
+      { label: "How do I add my whole section at once?" },
+    ];
   }
-  if (context?.taskId) return ["What do I need to do in this step?", "Can you give me a hint?", "Can you explain it more simply?"];
-  if (context?.badgeId) return ["Which task should I start with?", "What do I need to finish this badge?"];
-  return ["Which badge should I do first?", "How do I add a screenshot?", "What happens when a leader checks my work?"];
+  if (context?.taskId)
+    return [
+      { label: "What do I need to do in this step?" },
+      { label: "Can you give me a hint?" },
+      { label: "🧭 Show me how tasks work", tour: "scout-task" },
+    ];
+  if (context?.badgeId) return [{ label: "Which task should I start with?" }, { label: "What do I need to finish this badge?" }];
+  return [
+    { label: "Where should I start?" },
+    { label: "🧭 Show me around the app", tour: "scout-start" },
+    { label: "🧭 Show me how tasks work", tour: "scout-task" },
+  ];
+}
+
+// The helper can add [[show:place]] and [[tour:place,place…]] / [[tour:tour-id]] to its replies.
+const MARKER = /\[\[(show|tour):([a-z0-9:/,_ -]+)\]\]/gi;
+
+type Actions = {
+  show: (id: string) => void;
+  tour: (ids: string[]) => void;
+};
+
+/** One line of a reply, with any [[show:…]] markers turned into "Show me" buttons. */
+function Line({ text, actions }: { text: string; actions: Actions }) {
+  const parts: ReactNode[] = [];
+  let last = 0;
+  let i = 0;
+  for (const m of text.matchAll(MARKER)) {
+    const index = m.index ?? 0;
+    if (index > last) parts.push(<RichText key={i++} text={text.slice(last, index)} />);
+    if (m[1].toLowerCase() === "show") {
+      const id = m[2].trim();
+      parts.push(
+        <button
+          key={i++}
+          type="button"
+          onClick={() => actions.show(id)}
+          className="mx-1 inline-flex translate-y-[-1px] items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 align-middle text-xs font-bold text-amber-800 ring-1 ring-amber-200 transition hover:bg-amber-200"
+        >
+          <MousePointerClick className="size-3.5" /> Show me
+        </button>,
+      );
+    }
+    last = index + m[0].length;
+  }
+  if (last < text.length) parts.push(<RichText key={i++} text={text.slice(last)} />);
+  return <>{parts}</>;
 }
 
 /** Very small markdown: paragraphs, bullet and numbered lists, headings, plus RichText inline formatting. */
-function ChatText({ text }: { text: string }) {
+function ChatText({ text: raw, actions }: { text: string; actions: Actions }) {
   const isItem = (l: string) => /^\s*([-*•]|\d+[.)])\s+/.test(l);
+  // Hide a marker that's still streaming in ("[[sho"), and pull out walkthrough markers.
+  const tours: string[][] = [];
+  const text = raw.replace(/\[\[[^\]]*$/, "").replace(MARKER, (whole, kind: string, ids: string) => {
+    if (kind.toLowerCase() !== "tour") return whole;
+    tours.push(ids.split(",").map((x) => x.trim()).filter(Boolean));
+    return "";
+  });
   // Split into runs of list items and runs of ordinary lines, so "Here's how:" followed by bullets works.
   const runs: { list: boolean; lines: string[] }[] = [];
   for (const line of text.trim().split("\n")) {
@@ -75,7 +140,7 @@ function ChatText({ text }: { text: string }) {
               <List key={ri} className={cn("space-y-1 pl-5", ordered ? "list-decimal" : "list-disc")}>
                 {run.lines.map((l, ii) => (
                   <li key={ii}>
-                    <RichText text={l.replace(/^\s*([-*•]|\d+[.)])\s+/, "")} />
+                    <Line text={l.replace(/^\s*([-*•]|\d+[.)])\s+/, "")} actions={actions} />
                   </li>
                 ))}
               </List>
@@ -88,16 +153,30 @@ function ChatText({ text }: { text: string }) {
                   {li > 0 && <br />}
                   {/^#{1,4}\s/.test(line) ? (
                     <strong>
-                      <RichText text={line.replace(/^#{1,4}\s/, "")} />
+                      <Line text={line.replace(/^#{1,4}\s/, "")} actions={actions} />
                     </strong>
                   ) : (
-                    <RichText text={line} />
+                    <Line text={line} actions={actions} />
                   )}
                 </span>
               ))}
             </p>
           );
         })}
+      {tours.map((ids, ti) => {
+        const named = ids.length === 1 ? getTour(ids[0]) : undefined;
+        return (
+          <button
+            key={`tour-${ti}`}
+            type="button"
+            onClick={() => actions.tour(ids)}
+            className="flex w-full items-center gap-2 rounded-xl bg-brand-500 px-3 py-2.5 text-left text-sm font-bold text-white shadow-sm transition hover:bg-brand-600"
+          >
+            {named ? <Compass className="size-4 shrink-0" /> : <Play className="size-4 shrink-0" />}
+            {named ? `Take the tour: ${named.title}` : "Walk me through it"}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -110,6 +189,22 @@ function HelperChat({ mode, context }: { mode: HelperMode; context: HelperContex
   const abort = useRef<AbortController | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLTextAreaElement>(null);
+  const tour = useTour();
+
+  // Get out of the way while something is highlighted, then come back.
+  const actions: Actions = {
+    show: (id) => {
+      if (!tour) return;
+      setOpen(false);
+      tour.highlight(id, { onEnd: () => setOpen(true) });
+    },
+    tour: (ids) => {
+      if (!tour) return;
+      setOpen(false);
+      if (ids.length === 1 && getTour(ids[0])) tour.startTour(ids[0], { onEnd: () => setOpen(true) });
+      else tour.walkthrough(ids, { onEnd: () => setOpen(true) });
+    },
+  };
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
@@ -138,7 +233,7 @@ function HelperChat({ mode, context }: { mode: HelperMode; context: HelperContex
       const res = await fetch("/api/helper", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, messages: history, context }),
+        body: JSON.stringify({ mode, messages: history, context: { ...context, path: window.location.pathname } }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
@@ -168,6 +263,7 @@ function HelperChat({ mode, context }: { mode: HelperMode; context: HelperContex
         <button
           type="button"
           onClick={() => setOpen(true)}
+          data-tour="helper-button"
           className="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-brand-500 px-4 py-3 font-bold text-white shadow-lift transition hover:-translate-y-0.5 hover:bg-brand-600 sm:bottom-6 sm:right-6"
         >
           <Sparkles className="size-5" />
@@ -219,12 +315,15 @@ function HelperChat({ mode, context }: { mode: HelperMode; context: HelperContex
                 <p className="text-sm font-bold text-ink">{isScout ? "Hi! 👋 What can I help with?" : "How can I help?"}</p>
                 {suggestions(mode, context).map((s) => (
                   <button
-                    key={s}
+                    key={s.label}
                     type="button"
-                    onClick={() => send(s)}
-                    className="block w-full rounded-xl bg-white px-3 py-2 text-left text-sm font-semibold text-brand-700 ring-1 ring-brand-100 transition hover:bg-brand-50"
+                    onClick={() => (s.tour ? actions.tour([s.tour]) : send(s.label))}
+                    className={cn(
+                      "block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold ring-1 transition",
+                      s.tour ? "bg-amber-50 text-amber-900 ring-amber-200 hover:bg-amber-100" : "bg-white text-brand-700 ring-brand-100 hover:bg-brand-50",
+                    )}
                   >
-                    {s}
+                    {s.label}
                   </button>
                 ))}
               </div>
@@ -237,7 +336,7 @@ function HelperChat({ mode, context }: { mode: HelperMode; context: HelperContex
               ) : (
                 <div key={i} className="mr-6 rounded-2xl rounded-bl-md bg-white px-3.5 py-2.5 text-[15px] leading-relaxed ring-1 ring-line">
                   {m.content ? (
-                    <ChatText text={m.content} />
+                    <ChatText text={m.content} actions={actions} />
                   ) : (
                     <span className="inline-flex gap-1 py-1" aria-label="Thinking">
                       <span className="size-2 animate-bounce rounded-full bg-brand-300" />

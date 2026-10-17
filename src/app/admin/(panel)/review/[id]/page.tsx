@@ -74,11 +74,13 @@ export default async function ReviewDetailPage({ params }: PageProps<"/admin/rev
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-4">
           {task.leaderCheck && (
-            <Callout tone="info" title="What to look for">
-              {task.leaderCheck}
-            </Callout>
+            <div data-tour="review-look-for">
+              <Callout tone="info" title="What to look for">
+                {task.leaderCheck}
+              </Callout>
+            </div>
           )}
-          <Card className="p-5 sm:p-6">
+          <Card className="p-5 sm:p-6" data-tour="review-answers">
             <AnswerView task={task} answers={progress.answers} uploads={uploads} firstName={scout.firstName} />
           </Card>
         </div>
@@ -98,7 +100,7 @@ export default async function ReviewDetailPage({ params }: PageProps<"/admin/rev
             </Card>
           )}
 
-          <Card className="space-y-4 p-5">
+          <Card className="space-y-4 p-5" data-tour="review-decision">
             <h2 className="font-extrabold">
               {progress.status === "submitted" ? "Your decision" : progress.status === "done" ? "Finished" : "Leader actions"}
             </h2>

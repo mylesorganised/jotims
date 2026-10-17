@@ -158,7 +158,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
         </Label>
         <input id="eventName" name="eventName" defaultValue={settings.eventName} className={inputClass} />
       </div>
-      <label className="flex items-start gap-3 rounded-xl bg-canvas p-3.5 ring-1 ring-line">
+      <label className="flex items-start gap-3 rounded-xl bg-canvas p-3.5 ring-1 ring-line" data-tour="settings-signup">
         <input type="checkbox" name="allowSignup" defaultChecked={settings.allowSignup} className="mt-1 size-4 accent-brand-500" />
         <span>
           <span className="block font-bold">Let new young people add themselves</span>

@@ -1,19 +1,23 @@
-import { BADGES, getBadge, getTask } from "@/content";
+import { getBadge, getTask } from "@/content";
 import { getCurrentScout, getLeader } from "@/lib/auth";
 import { getScoutOverview, logActivity, logHelperMessages } from "@/lib/data";
 import { getDb, schema } from "@/lib/db";
 import { leaderSystemPrompt, needsLeaderAttention, scoutSystemPrompt } from "@/lib/helper/knowledge";
 import { helperEnabled, overHelperLimit, streamChat, type ChatMessage } from "@/lib/helper/openrouter";
-import { lockedBy } from "@/lib/progress";
 
 type Body = {
   mode?: "scout" | "leader";
   messages?: { role?: string; content?: string }[];
-  context?: { badgeId?: string; taskId?: string; step?: number };
+  context?: { badgeId?: string; taskId?: string; step?: number; path?: string };
 };
 
 const MAX_HISTORY = 12;
 const MAX_CHARS = 1200;
+
+/** Only a plain app path like /badges/x, never arbitrary text. */
+function safePath(path: unknown) {
+  return typeof path === "string" && /^\/[\w\-/]{0,120}$/.test(path) ? path : undefined;
+}
 
 function text(message: string, status: number) {
   return new Response(message, { status, headers: { "Content-Type": "text/plain; charset=utf-8" } });
@@ -41,7 +45,7 @@ export async function POST(request: Request) {
     const leader = await getLeader();
     if (!leader) return text("Please log in again.", 401);
     if (overHelperLimit(`leader:${leader.id}`)) return text("That's a lot of questions! Have a short break and try again soon.", 429);
-    system = leaderSystemPrompt();
+    system = leaderSystemPrompt(safePath(body.context?.path));
   } else {
     const scout = await getCurrentScout();
     if (!scout) return text("Please log in again.", 401);
@@ -55,8 +59,15 @@ export async function POST(request: Request) {
     const step = typeof body.context?.step === "number" && task ? Math.max(0, Math.min(task.steps.length, body.context.step)) : undefined;
 
     const { statuses, awards } = await getScoutOverview(scout.id);
-    const locked = BADGES.filter((b) => b.sections.includes(scout.section) && lockedBy(b, statuses, (id) => awards.has(id))).map((b) => b.id);
-    system = scoutSystemPrompt({ section: scout.section, badgeId, taskId, step, statuses, lockedBadgeIds: locked });
+    system = scoutSystemPrompt({
+      section: scout.section,
+      badgeId,
+      taskId,
+      step,
+      statuses,
+      awardedBadgeIds: [...awards.keys()],
+      path: safePath(body.context?.path),
+    });
 
     if (needsLeaderAttention(question.content)) await flagForLeaders(scout.id, scout.firstName, badgeId, taskId);
   }
