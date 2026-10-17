@@ -521,6 +521,14 @@ const stage3: TaskDef[] = [
         title: "What did you learn?",
         withLeader: true,
         body: ["Show a leader that you've done each one."],
+        explain: {
+          topic: "how AI learns, and what it can get wrong",
+          points: [
+            { idea: "AI learns from lots of examples or data: it is trained and finds patterns, rather than being told every rule.", ask: "How does an AI learn to do something new?" },
+            { idea: "It gets better with more (and better) examples or feedback.", ask: "What helps an AI get better at something?" },
+            { idea: "AI can get things wrong, for example if its examples were wrong, unfair (biased) or not enough, or when it meets something it hasn't seen before.", ask: "Why might an AI get something wrong?" },
+          ],
+        },
         fields: [
           { kind: "text", id: "learns", label: "How does AI learn?", long: true, required: true },
           { kind: "text", id: "wrong", label: "What can AI get wrong?", long: true, required: true },
@@ -657,7 +665,7 @@ const stage3: TaskDef[] = [
           { kind: "text", id: "where", label: "Where will it be used? Which Scouting activity: a hike, a wide game, a camp?", required: true },
           { kind: "text", id: "worn", label: "How will it be worn or carried? Wrist, pocket, bootlace, rucksack strap?", required: true },
           { kind: "text", id: "materials", label: "What materials would you use? (strap, card, battery pack, velcro, tape, waterproof bag…)", required: true },
-          { kind: "upload", id: "drawing", label: "Draw it, label the parts, and upload a photo (optional)", accept: "image/*" },
+          { kind: "upload", id: "drawing", label: "Draw it, label the parts, and upload a photo (optional)", accept: "image/*", studio: ["drawing"] },
         ],
       },
       {
@@ -784,7 +792,7 @@ const stage4: TaskDef[] = [
             placeholder: "e.g. Wide game: pick teams, keep score, call time",
             required: true,
           },
-          { kind: "upload", id: "mindmap", label: "Photo of your mind map (optional)", accept: "image/*" },
+          { kind: "upload", id: "mindmap", label: "Photo of your mind map (optional)", accept: "image/*", studio: ["drawing"] },
         ],
       },
       {
@@ -833,7 +841,7 @@ const stage4: TaskDef[] = [
         fields: [
           { kind: "text", id: "inputs", label: "Inputs: what goes in? (buttons, sensors, shaking, typing…)", long: true, required: true },
           { kind: "text", id: "outputs", label: "Outputs: what comes out? (lights, sounds, messages, a screen…)", long: true, required: true },
-          { kind: "upload", id: "design", label: "Upload a sketch of your design (optional)", accept: "image/*" },
+          { kind: "upload", id: "design", label: "Upload a sketch of your design (optional)", accept: "image/*", studio: ["drawing"] },
           { kind: "text", id: "help", label: "What might you need help with?", long: true },
         ],
       },
@@ -870,7 +878,7 @@ const stage4: TaskDef[] = [
         title: "Add the digital art",
         body: ["Make it look great: design a logo, icons, sprites, a screen layout, or LED pictures. Piskel and Photopea are free in the browser."],
         links: [L.piskel, L.photopea],
-        fields: [{ kind: "upload", id: "art", label: "Upload your artwork", accept: "image/*", multiple: true }],
+        fields: [{ kind: "upload", id: "art", label: "Upload your artwork", accept: "image/*", multiple: true, studio: ["drawing"] }],
       },
       {
         title: "Show it off",
@@ -1056,7 +1064,7 @@ const stage5: TaskDef[] = [
           { kind: "text", id: "how", label: "How will your solution work?", long: true, required: true },
           { kind: "text", id: "inputs", label: "Inputs (what goes in)", long: true, required: true },
           { kind: "text", id: "outputs", label: "Outputs (what comes out)", long: true, required: true },
-          { kind: "upload", id: "design", label: "Upload your design sketches", accept: "image/*", multiple: true },
+          { kind: "upload", id: "design", label: "Upload your design sketches", accept: "image/*", multiple: true, studio: ["drawing"] },
         ],
       },
       {
@@ -1171,7 +1179,7 @@ const stage5: TaskDef[] = [
         title: "Make and share it",
         withLeader: true,
         fields: [
-          { kind: "upload", id: "guide", label: "Upload your guide (or screenshots of it)", multiple: true, required: true },
+          { kind: "upload", id: "guide", label: "Upload your guide (or screenshots of it)", multiple: true, required: true, studio: ["slides", "poster"] },
           { kind: "text", id: "guide_link", label: "Link to where it's shared", placeholder: "https://…" },
           { kind: "text", id: "response", label: "How did people respond? Did anyone try it?", long: true },
         ],

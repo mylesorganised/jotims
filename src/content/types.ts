@@ -57,8 +57,17 @@ export type FieldDef =
     })
   | (FieldBase & { kind: "choice"; options: string[] })
   | (FieldBase & { kind: "checklist"; items: string[]; requireAll?: boolean; /** at least this many ticked (default 1) */ min?: number })
-  | (FieldBase & { kind: "upload"; accept?: string; multiple?: boolean })
+  | (FieldBase & {
+      kind: "upload";
+      accept?: string;
+      multiple?: boolean;
+      /** offer the in-app studio to make it here (first = the main button) */
+      studio?: StudioMode[];
+    })
   | (FieldBase & { kind: "led" });
+
+/** What the in-app studio makes: a free drawing, a one-page poster, or slides. */
+export type StudioMode = "drawing" | "poster" | "slides";
 
 export type StepImage = { src: string; alt: string; caption?: string };
 
@@ -82,6 +91,21 @@ export type StepDef = {
   withLeader?: boolean;
   /** shown as a "Stuck?" panel */
   stuck?: { problem: string; fix: string }[];
+  /** they can explain this to the AI leader in a chat instead of a real leader */
+  explain?: ExplainDef;
+};
+
+/** An "explain it to a leader" step that can be done as a chat with the AI leader. */
+export type ExplainDef = {
+  /** finishes the sentence "Can you explain …" */
+  topic: string;
+  /**
+   * What a good explanation covers. `idea` is used to judge it (never shown);
+   * `ask` is a question that prompts for it without giving the answer away.
+   */
+  points: { idea: string; ask: string }[];
+  /** how many of the points they need (default: all) */
+  need?: number;
 };
 
 export type TaskDef = {

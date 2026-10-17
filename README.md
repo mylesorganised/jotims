@@ -37,6 +37,29 @@ leader can tick it off or sign it off on their page, which unlocks the next one.
 - Tasks are either **"You tick this off"** (done when they finish) or **"Leader
   checks this"** (waits for a leader to approve).
 
+## Making things in the app
+
+- **Drawing, poster and slides maker**: wherever a task asks for a drawing,
+  poster, mind map, design sketch or slideshow, the upload box also offers
+  "🎨 Draw it here", "🖼️ Make a poster here" or "📊 Make slides here". It
+  opens a full-screen editor ([Excalidraw](https://excalidraw.com), built in,
+  nothing leaves the app) with a ready-made A4 poster page or set of slides,
+  a sticker bar, pictures, shapes and text. "Add to my answer" turns it into
+  pictures and uploads them (one per slide; untouched slides are left out).
+  Work in progress saves itself on that device. Which upload boxes offer it
+  is set by `studio: [...]` on the field in `src/content/`.
+- **Explain it to the AI leader**: steps that say "explain this to a leader"
+  (radio signals, Q codes, mobile safety, who you talk to online, how AI
+  learns) can be done as a chat with the AI leader instead. Copy and paste
+  is switched off (and young people are told why), the AI leader asks a few
+  questions about anything they've missed without giving the answers, and
+  Jev judges whether they've explained each key idea in their own words. If
+  they have, it counts as the "with a leader" part, so the AI leader can
+  approve the task; if they haven't after six messages, it hands them to a
+  real leader. A real leader is always an option. Leaders see the whole chat
+  on the submission. The ideas each step needs are in `explain: {...}` on the
+  step in `src/content/`.
+
 ## JOTI chat guide (`/chat`)
 
 A "JOTI chat" page (in the menu, and on the login page) walks young people
@@ -247,8 +270,8 @@ and then `npm run dev`. Be careful: you're then editing real data.
   to the young person who uploaded them or a leader.
 - The app never asks young people to type phone numbers or addresses, and the
   safety steps remind them not to.
-- The AI leader sees a young person's section, age and answers (never their
-  name) and descriptions of their uploaded images. It never approves work
+- The AI leader sees a young person's section, age, answers and explain-it
+  chats (never their full name) and descriptions of their uploaded images. It never approves work
   containing personal details or anything worrying; those go to a leader.
 - Deleting a young person deletes all their answers, uploaded files, messages
   and AI reviews.

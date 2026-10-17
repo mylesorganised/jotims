@@ -159,6 +159,29 @@ export const aiReviews = pgTable("ai_reviews", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export type ExplainMessage = { role: "ai" | "scout"; text: string; at: string };
+
+/** "Explain it to a leader" done as a chat with the AI leader (one per young person per step). */
+export const explanations = pgTable(
+  "explanations",
+  {
+    id: serial("id").primaryKey(),
+    scoutId: text("scout_id")
+      .notNull()
+      .references(() => scouts.id, { onDelete: "cascade" }),
+    badgeId: text("badge_id").notNull(),
+    taskId: text("task_id").notNull(),
+    step: integer("step").notNull(),
+    /** chatting | passed | referred (passed to a real leader) */
+    status: text("status").$type<"chatting" | "passed" | "referred">().notNull().default("chatting"),
+    messages: jsonb("messages").$type<ExplainMessage[]>().notNull().default([]),
+    scores: jsonb("scores").$type<Record<string, number>>().notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("explanations_scout_step_idx").on(t.scoutId, t.badgeId, t.taskId, t.step)],
+);
+
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: jsonb("value").notNull(),
@@ -282,6 +305,19 @@ export const bootstrapSql = [
     created_at timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS ai_reviews_progress_idx ON ai_reviews (progress_id, id DESC)`,
+  `CREATE TABLE IF NOT EXISTS explanations (
+    id serial PRIMARY KEY,
+    scout_id text NOT NULL REFERENCES scouts(id) ON DELETE CASCADE,
+    badge_id text NOT NULL,
+    task_id text NOT NULL,
+    step integer NOT NULL,
+    status text NOT NULL DEFAULT 'chatting',
+    messages jsonb NOT NULL DEFAULT '[]'::jsonb,
+    scores jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS explanations_scout_step_idx ON explanations (scout_id, badge_id, task_id, step)`,
   `CREATE TABLE IF NOT EXISTS settings (
     key text PRIMARY KEY,
     value jsonb NOT NULL

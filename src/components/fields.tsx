@@ -168,6 +168,7 @@ function FieldInput({ field, value, onChange, disabled, firstName, uploads, onUp
           fieldId={field.id}
           accept={field.accept}
           multiple={field.multiple}
+          studio={field.studio}
           files={uploads}
           onChange={onUploads}
           disabled={disabled}

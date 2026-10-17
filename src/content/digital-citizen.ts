@@ -109,7 +109,7 @@ const stage1: TaskDef[] = [
           "What will it be made of?",
           "Will it look like the ones in the pictures, or totally different?",
         ],
-        fields: [{ kind: "upload", id: "drawing", label: "Upload a photo of your drawing", accept: "image/*", required: true }],
+        fields: [{ kind: "upload", id: "drawing", label: "Upload a photo of your drawing", accept: "image/*", required: true, studio: ["drawing"] }],
       },
       {
         title: "Tell us about it",
@@ -184,7 +184,7 @@ const stage1: TaskDef[] = [
         title: "Make a poster",
         body: ["Create a poster, on paper or on the computer, to show what you've learnt and teach others."],
         warning: "Don't put your real password on your poster!",
-        fields: [{ kind: "upload", id: "poster", label: "Upload a photo of your poster", accept: "image/*,application/pdf", required: true }],
+        fields: [{ kind: "upload", id: "poster", label: "Upload a photo of your poster", accept: "image/*,application/pdf", required: true, studio: ["poster"] }],
       },
     ],
   },
@@ -235,7 +235,7 @@ function learnAndShare(id: string, emoji: string, mix: boolean): TaskDef {
         title: "Present it",
         body: [`Present what you've learnt to ${mix ? "other Scouts" : "others"} or a leader.`],
         withLeader: true,
-        fields: [{ kind: "upload", id: "work", label: "Upload your poster, slides or photos", multiple: true }],
+        fields: [{ kind: "upload", id: "work", label: "Upload your poster, slides or photos", multiple: true, studio: ["poster", "slides"] }],
       },
     ],
   };
@@ -456,7 +456,7 @@ const stage3: TaskDef[] = [
         title: "Create something",
         body: ["Create something that helps other young people know what to do. It could be a poster, leaflet, comic, video or slideshow."],
         fields: [
-          { kind: "upload", id: "creation", label: "Upload what you made", multiple: true, required: true },
+          { kind: "upload", id: "creation", label: "Upload what you made", multiple: true, required: true, studio: ["poster", "drawing"] },
           { kind: "text", id: "about", label: "What did you make, and what does it tell people?", long: true, required: true },
         ],
       },
@@ -538,6 +538,14 @@ const stage3: TaskDef[] = [
         title: "Talk to a leader",
         body: ["What do you think about that? Talk to a leader and discuss it."],
         withLeader: true,
+        explain: {
+          topic: "who you interact with online, and how that compares to the people you know in real life",
+          points: [
+            { idea: "Describes the kinds of people they talk to or play with online (such as friends from school, family, or people they only know from a game), without needing names.", ask: "What kinds of people do you talk to or play with online?" },
+            { idea: "Thinks about whether those people are similar to them or different (for example in age, where they live, or what they like).", ask: "Are the people you meet online like you, or quite different? How do you know?" },
+            { idea: "Compares online and real life, for example that you can't always be sure who someone online really is, or that you meet a wider mix of people online.", ask: "How is meeting people online different from meeting them in real life?" },
+          ],
+        },
         fields: [{ kind: "text", id: "thoughts", label: "What did you think or decide?", long: true }],
       },
     ],
@@ -581,7 +589,7 @@ const stage3: TaskDef[] = [
         body: [
           "Create a poster that helps other young people know what to do if they're made to feel unhappy or unsafe online, or someone is unkind. Make it good enough to go up in the Scout hut!",
         ],
-        fields: [{ kind: "upload", id: "poster", label: "Upload your poster", accept: "image/*,application/pdf", required: true }],
+        fields: [{ kind: "upload", id: "poster", label: "Upload your poster", accept: "image/*,application/pdf", required: true, studio: ["poster"] }],
       },
     ],
   },
@@ -619,7 +627,7 @@ const stage3: TaskDef[] = [
         withLeader: true,
         fields: [
           { kind: "text", id: "video_plan", label: "Video plan, scene by scene (if you're making one)", long: true },
-          { kind: "upload", id: "work", label: "Upload your posters, flyers or video", multiple: true, required: true },
+          { kind: "upload", id: "work", label: "Upload your posters, flyers or video", multiple: true, required: true, studio: ["poster"] },
         ],
       },
     ],
@@ -704,7 +712,7 @@ const stage4: TaskDef[] = [
           "Show all of this in a creative way of your choice: a poster, a mind map, a comic strip, a slideshow, a short video or a Scratch animation.",
         ],
         fields: [
-          { kind: "upload", id: "creation", label: "Upload what you made", multiple: true, required: true },
+          { kind: "upload", id: "creation", label: "Upload what you made", multiple: true, required: true, studio: ["poster", "drawing"] },
           { kind: "text", id: "rights", label: "What rights do you have over information about you online?", long: true, required: true },
         ],
         links: [L.icoPublic],
@@ -737,7 +745,7 @@ const stage4: TaskDef[] = [
         body: ["Create an activity that shows other young people what you found out: a quiz, a game, a card sort, a role-play or an online quiz."],
         fields: [
           { kind: "text", id: "activity", label: "Describe your activity and how to run it", long: true, required: true },
-          { kind: "upload", id: "materials", label: "Upload your activity (cards, slides, quiz…)", multiple: true, required: true },
+          { kind: "upload", id: "materials", label: "Upload your activity (cards, slides, quiz…)", multiple: true, required: true, studio: ["slides", "poster"] },
         ],
       },
       {
@@ -846,7 +854,7 @@ const stage4: TaskDef[] = [
         body: ["Create a digital version: a slideshow, an infographic, a short video, a web page, or a Scratch animation."],
         links: [L.scratch, L.rpiEditor],
         fields: [
-          { kind: "upload", id: "creation", label: "Upload it, or a screenshot of it", multiple: true, required: true },
+          { kind: "upload", id: "creation", label: "Upload it, or a screenshot of it", multiple: true, required: true, studio: ["slides", "poster"] },
           { kind: "text", id: "link", label: "Link to it online (optional)", placeholder: "https://…" },
         ],
       },

@@ -43,6 +43,22 @@ async function connect(): Promise<Database> {
   const dataDir = path.join(process.cwd(), ".data", "pglite");
   fs.mkdirSync(dataDir, { recursive: true });
   const client = new PGlite(dataDir);
+  try {
+    await client.waitReady;
+  } catch (error) {
+    throw new Error(
+      `The local database in .data/pglite won't open (usually because the dev server was killed while it was writing). ` +
+        `Move that folder aside (e.g. rename it to .data/pglite-damaged) and restart \`npm run dev\` to start a fresh one. ` +
+        `Your live (Vercel) data isn't affected. Cause: ${(error as Error).message}`,
+    );
+  }
+  // Shut the embedded database down cleanly when the dev server stops, so
+  // its write-ahead log isn't left half-written.
+  const close = () => {
+    void client.close().finally(() => process.exit(0));
+  };
+  process.once("SIGINT", close);
+  process.once("SIGTERM", close);
   return drizzle(client, { schema }) as unknown as Database;
 }
 

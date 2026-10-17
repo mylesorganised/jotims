@@ -9,6 +9,7 @@ import { badgeProgress } from "@/lib/progress";
 import { getSettings } from "@/lib/settings";
 import type { Decision } from "./decisions";
 import { describeUploads } from "./evidence";
+import { getExplanationsForTask } from "./explain";
 import { jevAsk, jevEnabled, noulOf, scoreOf, type JevQuestion } from "./jev";
 import { submissionState, type ReviewField } from "./submission";
 
@@ -210,9 +211,16 @@ export async function reviewSubmission(progressId: string, { auto }: { auto: boo
   const db = await getDb();
 
   try {
-    const uploads = await getTaskUploads(scout.id, badge.id, task.id);
+    const [uploads, explanations] = await Promise.all([
+      getTaskUploads(scout.id, badge.id, task.id),
+      getExplanationsForTask(scout.id, badge.id, task.id),
+    ]);
     const descriptions = await describeUploads(task, uploads);
-    const { state, fields } = submissionState({
+    // Steps done "with a leader" that they explained to the AI leader instead, and passed.
+    const leaderSteps = task.steps.map((st, i) => ({ st, i })).filter(({ st }) => st.withLeader);
+    const explainedAll =
+      leaderSteps.length > 0 && leaderSteps.every(({ st, i }) => st.explain && explanations.get(i)?.status === "passed");
+    const built = submissionState({
       task,
       answers: progress.answers,
       uploads,
@@ -221,6 +229,23 @@ export async function reviewSubmission(progressId: string, { auto }: { auto: boo
       section: scout.section,
       age,
     });
+    const { fields } = built;
+    const state = {
+      ...built.state,
+      submission: {
+        ...built.state.submission,
+        ...(explanations.size
+          ? {
+              explained_to_ai_leader: Object.fromEntries(
+                [...explanations.values()].map((e) => [
+                  task.steps[e.step]?.title ?? `step ${e.step + 1}`,
+                  { result: e.status, their_words: e.messages.filter((m) => m.role === "scout").map((m) => m.text) },
+                ]),
+              ),
+            }
+          : {}),
+      },
+    };
 
     const [answers, witness, [sendBacks]] = await Promise.all([
       jevAsk(state, submissionQuestions(fields)),
@@ -246,7 +271,7 @@ export async function reviewSubmission(progressId: string, { auto }: { auto: boo
     const weak = Object.entries(fieldScores)
       .filter(([, p]) => p < POLICY.weakField)
       .map(([label]) => label);
-    const inPerson = s.witness >= POLICY.needsWitness && !settings.aiApproveInPerson;
+    const inPerson = s.witness >= POLICY.needsWitness && !settings.aiApproveInPerson && !explainedAll;
     const clearlyDone =
       s.meets >= POLICY.approve.meets &&
       s.complete >= POLICY.approve.complete &&
@@ -280,7 +305,7 @@ export async function reviewSubmission(progressId: string, { auto }: { auto: boo
       reason = `Part of this happens with a leader, and the written part is borderline (${weak.length ? `check: ${weak.join("; ")}` : `meets the requirement ${pct(s.meets)}`}).`;
     } else if (clearlyDone) {
       decision = "approved";
-      reason = "The answers meet the requirement.";
+      reason = explainedAll ? "The answers meet the requirement, and they explained it to the AI leader." : "The answers meet the requirement.";
     } else {
       decision = "unsure";
       const doubts = [

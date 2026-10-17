@@ -36,6 +36,7 @@ import { fieldComplete, missingFields, type Missing } from "@/lib/answers";
 import type { AnswerValue, Answers, TaskStatus } from "@/lib/db/schema";
 import { Field } from "./fields";
 import { useHelperContext } from "./helper/helper";
+import { ExplainChat } from "./explain-chat";
 import { RichText } from "./rich-text";
 import { Tool } from "./tools";
 import { buttonClass, Callout, cn } from "./ui";
@@ -258,6 +259,18 @@ export function TaskWizard({
                 total={task.steps.length}
                 storageKey={`joti:${scout.id}:${badge.id}:${task.id}`}
                 onZoom={setZoom}
+                extra={
+                  current.explain && task.review === "leader" ? (
+                    <ExplainChat
+                      badgeId={badge.id}
+                      taskId={task.id}
+                      step={step}
+                      topic={current.explain.topic}
+                      locked={locked}
+                      preview={preview}
+                    />
+                  ) : null
+                }
                 renderField={(field) => (
                   <Field
                     key={field.id}
@@ -441,6 +454,7 @@ function StepView({
   storageKey,
   onZoom,
   renderField,
+  extra,
 }: {
   step: StepDef;
   index: number;
@@ -448,6 +462,8 @@ function StepView({
   storageKey: string;
   onZoom: (img: StepImage) => void;
   renderField: (field: NonNullable<StepDef["fields"]>[number]) => React.ReactNode;
+  /** shown after the instructions, before the answers (e.g. the explain chat) */
+  extra?: React.ReactNode;
 }) {
   const [ticks, setTicks] = useState<Record<string, boolean>>({});
   const [peek, setPeek] = useState(false);
@@ -613,6 +629,8 @@ function StepView({
           </dl>
         </details>
       )}
+
+      {extra}
 
       {step.fields && step.fields.length > 0 && (
         <div className="space-y-5 rounded-2xl bg-canvas p-4 ring-1 ring-line sm:p-5" data-tour="step-answers">

@@ -1,4 +1,6 @@
 import "server-only";
+import { logActivity } from "@/lib/data";
+import { getDb, schema } from "@/lib/db";
 import { needsLeaderAttention } from "@/lib/helper/knowledge";
 import { jevAsk, jevEnabled, noulOf } from "./jev";
 
@@ -26,4 +28,27 @@ export async function shouldFlagMessage(message: string, earlier: string[] = [])
     console.error("Safeguarding check failed, using keywords", error);
     return needsLeaderAttention(message);
   }
+}
+
+/** Puts the young person's hand up (if we know the task) and notes it in the activity feed. */
+export async function flagForLeaders(scoutId: string, firstName: string, badgeId: string | undefined, taskId: string | undefined, where: string) {
+  await logActivity({
+    scoutId,
+    badgeId,
+    taskId,
+    kind: "flag",
+    actor: firstName,
+    message: `said something in the ${where} that a leader should check (see their page)`,
+  });
+  if (!badgeId || !taskId) return;
+  const db = await getDb();
+  const now = new Date();
+  const helpMessage = `🚩 Flagged from the ${where}: please check in with them.`;
+  await db
+    .insert(schema.taskProgress)
+    .values({ id: crypto.randomUUID(), scoutId, badgeId, taskId, helpRequestedAt: now, helpMessage })
+    .onConflictDoUpdate({
+      target: [schema.taskProgress.scoutId, schema.taskProgress.badgeId, schema.taskProgress.taskId],
+      set: { helpRequestedAt: now, helpMessage },
+    });
 }

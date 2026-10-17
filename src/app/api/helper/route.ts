@@ -1,8 +1,7 @@
 import { getBadge, getTask } from "@/content";
 import { getCurrentScout, getLeader } from "@/lib/auth";
-import { getScoutOverview, logActivity, logHelperMessages } from "@/lib/data";
-import { getDb, schema } from "@/lib/db";
-import { shouldFlagMessage } from "@/lib/ai/safeguarding";
+import { getScoutOverview, logHelperMessages } from "@/lib/data";
+import { flagForLeaders, shouldFlagMessage } from "@/lib/ai/safeguarding";
 import { leaderSystemPrompt, scoutSystemPrompt } from "@/lib/helper/knowledge";
 import { helperEnabled, overHelperLimit, streamChat, type ChatMessage } from "@/lib/helper/openrouter";
 
@@ -80,7 +79,7 @@ export async function POST(request: Request) {
     // Checked alongside the reply so it doesn't slow the helper down.
     const earlier = history.slice(0, -1).filter((m) => m.role === "user").map((m) => m.content);
     flagged = shouldFlagMessage(question.content, earlier).then(async (worry) => {
-      if (worry) await flagForLeaders(scout.id, scout.firstName, badgeId, taskId);
+      if (worry) await flagForLeaders(scout.id, scout.firstName, badgeId, taskId, "helper chat");
       return worry;
     });
   }
@@ -118,27 +117,4 @@ export async function POST(request: Request) {
   return new Response(stream, {
     headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Accel-Buffering": "no" },
   });
-}
-
-/** Puts the young person's hand up (if we know the task) and notes it in the activity feed. */
-async function flagForLeaders(scoutId: string, firstName: string, badgeId?: string, taskId?: string) {
-  await logActivity({
-    scoutId,
-    badgeId,
-    taskId,
-    kind: "flag",
-    actor: firstName,
-    message: "said something to the helper that a leader should check (see their page)",
-  });
-  if (!badgeId || !taskId) return;
-  const db = await getDb();
-  const now = new Date();
-  const helpMessage = "🚩 Flagged from the helper chat: please check in with them (their chat is on their page).";
-  await db
-    .insert(schema.taskProgress)
-    .values({ id: crypto.randomUUID(), scoutId, badgeId, taskId, helpRequestedAt: now, helpMessage })
-    .onConflictDoUpdate({
-      target: [schema.taskProgress.scoutId, schema.taskProgress.badgeId, schema.taskProgress.taskId],
-      set: { helpRequestedAt: now, helpMessage },
-    });
 }

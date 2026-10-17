@@ -1,12 +1,65 @@
 "use client";
 
 import { useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Camera, FileText, Film, LoaderCircle, Presentation, ScrollText, Upload, X } from "lucide-react";
 import { deleteUploadAction, recordBlobUploadAction, type RecordedUpload } from "@/app/actions/scout";
+import type { StudioMode } from "@/content/types";
 import { viewerKind } from "@/lib/file-kinds";
 import { fileSize } from "@/lib/format";
 import { FileViewer } from "./slides/file-viewer";
 import { Callout, cn } from "./ui";
+
+// The drawing studio is big, so it only loads when someone opens it.
+const Studio = dynamic(() => import("./studio/studio"), {
+  ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 z-[70] grid place-items-center bg-white/90">
+      <LoaderCircle className="size-8 animate-spin text-brand-500" />
+    </div>
+  ),
+});
+
+const STUDIO_BUTTON: Record<StudioMode, string> = {
+  drawing: "🎨 Draw it here",
+  poster: "🖼️ Make a poster here",
+  slides: "📊 Make slides here",
+};
+
+function StudioButtons({
+  modes,
+  draftKey,
+  onFiles,
+  preview,
+}: {
+  modes: StudioMode[];
+  draftKey: string;
+  onFiles: (files: File[]) => Promise<void> | void;
+  preview?: boolean;
+}) {
+  const [open, setOpen] = useState<StudioMode | null>(null);
+  return (
+    <div className="rounded-2xl bg-brand-50/60 p-3 ring-1 ring-brand-100" data-tour="studio-buttons">
+      <p className="mb-2 text-sm font-bold text-brand-800">No paper? Make it right here:</p>
+      <div className="flex flex-wrap gap-2">
+        {modes.map((m, i) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setOpen(m)}
+            className={cn(
+              "rounded-xl px-4 py-2 text-sm font-extrabold transition",
+              i === 0 ? "bg-brand-500 text-white shadow-sm hover:bg-brand-600" : "bg-white text-brand-700 ring-1 ring-brand-200 hover:bg-brand-50",
+            )}
+          >
+            {STUDIO_BUTTON[m]}
+          </button>
+        ))}
+      </div>
+      {open && <Studio mode={open} draftKey={`${draftKey}:${open}`} onDone={onFiles} onClose={() => setOpen(null)} preview={preview} />}
+    </div>
+  );
+}
 
 export type UploadConfig = {
   mode: "local" | "blob" | "none" | "preview";
@@ -124,6 +177,7 @@ export function Uploader({
   fieldId,
   accept,
   multiple,
+  studio,
   files,
   onChange,
   disabled,
@@ -132,6 +186,8 @@ export function Uploader({
   fieldId: string;
   accept?: string;
   multiple?: boolean;
+  /** offer the in-app drawing / poster / slides maker */
+  studio?: StudioMode[];
   files: RecordedUpload[];
   onChange: (files: RecordedUpload[]) => void;
   disabled?: boolean;
@@ -142,12 +198,17 @@ export function Uploader({
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
 
+  const draftKey = `joti-studio:${config.scoutId}:${config.badgeId}:${config.taskId}:${fieldId}`;
+
   if (config.mode === "preview") {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-200 bg-white px-4 py-6 text-center opacity-80" data-tour="upload-box">
-        <Upload className="size-7 text-brand-500" />
-        <span className="font-bold text-brand-700">{accept === "image/*" ? "Add a photo or screenshot" : "Add a file"}</span>
-        <span className="text-xs text-muted">Young people tap here to upload. (Off in preview.)</span>
+      <div className="space-y-3">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-200 bg-white px-4 py-6 text-center opacity-80" data-tour="upload-box">
+          <Upload className="size-7 text-brand-500" />
+          <span className="font-bold text-brand-700">{accept === "image/*" ? "Add a photo or screenshot" : "Add a file"}</span>
+          <span className="text-xs text-muted">Young people tap here to upload. (Off in preview.)</span>
+        </div>
+        {studio?.length ? <StudioButtons modes={studio} draftKey={draftKey} onFiles={() => {}} preview /> : null}
       </div>
     );
   }
@@ -249,6 +310,7 @@ export function Uploader({
           e.target.value = "";
         }}
       />
+      {studio?.length && !disabled && busy === 0 ? <StudioButtons modes={studio} draftKey={draftKey} onFiles={add} /> : null}
       {error && <Callout tone="error">{error}</Callout>}
     </div>
   );

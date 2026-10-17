@@ -730,7 +730,18 @@ const scoutTasks: TaskDef[] = [
         title: "Explain it to an adult",
         body: ["Explain it all back to a leader and see if you got it right. You can use paper, a presentation, or however you like."],
         withLeader: true,
-        fields: [{ kind: "upload", id: "notes", label: "Upload your notes or slides (optional)", multiple: true }],
+        explain: {
+          topic: "how radio signals travel round the world, whether there's a limit to how far they go, and what HF and VHF radio are used for",
+          points: [
+            { idea: "Radio signals are waves (radio waves) that travel through the air and space, very fast (at the speed of light).", ask: "What actually is a radio signal, and how fast does it go?" },
+            { idea: "HF signals can bounce off the ionosphere (a layer high up in the sky) and back down to Earth, hopping round the world.", ask: "How can a radio signal get all the way round the curve of the Earth?" },
+            { idea: "There is a limit: signals get weaker and lose energy, and how far they go depends on things like power, time of day, the Sun or weather.", ask: "Can a radio signal go on forever? What stops it?" },
+            { idea: "HF (high frequency) is used for long-distance radio, such as amateur radio and JOTA, ships, planes or shortwave broadcasts.", ask: "What would you use HF radio for?" },
+            { idea: "VHF (very high frequency) travels in straight lines (line of sight), so it's used for local things like FM radio, walkie-talkies or emergency services.", ask: "How is VHF different from HF, and what is it used for?" },
+          ],
+          need: 4,
+        },
+        fields: [{ kind: "upload", id: "notes", label: "Upload your notes or slides (optional)", multiple: true, studio: ["slides", "poster"] }],
       },
     ],
   },
@@ -840,7 +851,19 @@ const scoutTasks: TaskDef[] = [
           },
         ],
       },
-      { title: "Explain it to a leader", body: ["Tell a leader what Q codes are and what yours mean."], withLeader: true },
+      {
+        title: "Explain it to a leader",
+        body: ["Tell a leader what Q codes are and what yours mean."],
+        withLeader: true,
+        explain: {
+          topic: "what Q codes are, why radio operators use them, and what some Q codes mean",
+          points: [
+            { idea: "Q codes are short codes of three letters that start with Q.", ask: "What does a Q code look like?" },
+            { idea: "They keep messages short and quick, and people who speak different languages can all understand them.", ask: "Why do radio operators use Q codes instead of normal words?" },
+            { idea: "Gives at least two real Q codes with their correct meanings (for example QTH = my location, QSL = I confirm I got your message, QRM = interference, QRZ = who is calling me?).", ask: "Can you tell me two or three Q codes and what they mean?" },
+          ],
+        },
+      },
     ],
   },
   {
@@ -866,7 +889,22 @@ const scoutTasks: TaskDef[] = [
         links: [L.childnet, L.thinkuknow],
         fields: [{ kind: "text", id: "tips", label: "My top tips for staying safe on a mobile", long: true, required: true }],
       },
-      { title: "Explain it to a leader", withLeader: true, body: ["Talk a leader through your tips."] },
+      {
+        title: "Explain it to a leader",
+        withLeader: true,
+        body: ["Talk a leader through your tips."],
+        explain: {
+          topic: "your tips for using a mobile phone safely",
+          points: [
+            { idea: "Only give your number to people you know and trust.", ask: "Who should you give your phone number to?" },
+            { idea: "Use a passcode or screen lock so other people can't get into your phone.", ask: "How can you stop other people getting into your phone?" },
+            { idea: "Be careful with location sharing and privacy settings.", ask: "What settings on your phone could show where you are or who can see your stuff?" },
+            { idea: "Don't reply to messages or calls from people you don't know, and think before you post or share things.", ask: "What would you do if someone you don't know messages you?" },
+            { idea: "Tell a trusted adult if something online or on your phone worries you.", ask: "What should you do if something on your phone worries you?" },
+          ],
+          need: 3,
+        },
+      },
     ],
   },
   {

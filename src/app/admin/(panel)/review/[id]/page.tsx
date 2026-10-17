@@ -11,11 +11,13 @@ import {
 } from "@/app/actions/leader";
 import { AiReviewCard } from "@/components/admin/ai-review-card";
 import { AnswerView } from "@/components/admin/answer-view";
+import { ExplanationCard } from "@/components/admin/explanation-card";
 import { SubmitButton } from "@/components/admin/form-bits";
 import { BadgeEmblem } from "@/components/badge-emblem";
 import { SectionPill, TaskStatusPill } from "@/components/status";
 import { buttonClass, Callout, Card, inputClass } from "@/components/ui";
 import { badgeName, getBadge, getTask } from "@/content";
+import { getExplanationsForTask } from "@/lib/ai/explain";
 import { aiReviewerAvailable, getLatestAiReviews } from "@/lib/ai/reviewer";
 import { requireLeader } from "@/lib/auth";
 import { ageOn, getProgressById, getReviewQueue, getTaskUploads, requestTime } from "@/lib/data";
@@ -35,10 +37,11 @@ export default async function ReviewDetailPage({ params }: PageProps<"/admin/rev
   const task = badge && getTask(badge, progress.taskId);
   if (!badge || !task) notFound();
 
-  const [uploads, queue, aiReviews] = await Promise.all([
+  const [uploads, queue, aiReviews, explanations] = await Promise.all([
     getTaskUploads(scout.id, badge.id, task.id),
     getReviewQueue(),
     getLatestAiReviews([progress.id]),
+    getExplanationsForTask(scout.id, badge.id, task.id),
   ]);
   const aiReview = aiReviews.get(progress.id) ?? null;
   const now = await requestTime();
@@ -90,6 +93,9 @@ export default async function ReviewDetailPage({ params }: PageProps<"/admin/rev
           <Card className="p-5 sm:p-6" data-tour="review-answers">
             <AnswerView task={task} answers={progress.answers} uploads={uploads} firstName={scout.firstName} />
           </Card>
+          {[...explanations.values()].map((row) => (
+            <ExplanationCard key={row.id} row={row} stepTitle={task.steps[row.step]?.title ?? `Step ${row.step + 1}`} firstName={scout.firstName} />
+          ))}
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-32 lg:self-start">

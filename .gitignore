@@ -46,3 +46,4 @@ next-env.d.ts
 
 # original sheets (the app uses copies in public/resources)
 jotistuff.zip
+/public/excalidraw-assets/
