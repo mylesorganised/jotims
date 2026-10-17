@@ -26,7 +26,6 @@ export function NavLink(props: Props) {
       fallback={
         <Link href={props.href} className={cn(base, idle)}>
           {props.children}
-          {props.badge}
         </Link>
       }
     >

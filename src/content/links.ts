@@ -75,6 +75,81 @@ export const L = {
   makecode: { label: "MakeCode for micro:bit", url: "https://makecode.microbit.org/", note: "No account or download needed" },
   coinFlipper: { label: "Coin Flipper tutorial", url: "https://makecode.microbit.org/projects/coin-flipper" },
   tugOfLed: { label: "Tug-of-LED tutorial", url: "https://makecode.microbit.org/projects/tug-of-led" },
+
+  // --- Digital Citizen Stage 4
+  scoutsShareDontShare: {
+    label: "Scouts: Share, don't share",
+    url: "https://www.scouts.org.uk/activities/share-don-t-share/",
+    note: "A quick game about what to share online",
+  },
+  scoutsDigitalDetectives: { label: "Scouts: Digital detectives", url: "https://www.scouts.org.uk/activities/digital-detectives/" },
+  scoutsSponsored: { label: "Scouts: Spot the sponsored content", url: "https://www.scouts.org.uk/activities/spot-the-sponsored-content/" },
+  scoutsTwoSides: { label: "Scouts: Two sides to every story", url: "https://www.scouts.org.uk/activities/two-sides-to-every-story/" },
+  scoutsTeachYou: { label: "Scouts: That'll teach you", url: "https://www.scouts.org.uk/activities/that-ll-teach-you/" },
+  yourOnlineChoices: {
+    label: "Your Online Choices",
+    url: "https://www.youronlinechoices.com/uk/",
+    note: "How targeted adverts work, and how to control them",
+  },
+  icoPublic: { label: "ICO: your data rights", url: "https://ico.org.uk/for-the-public/", note: "The UK's information watchdog" },
+  childnetTrustMe: { label: "Childnet: Trust Me", url: "https://www.childnet.com/resources/trust-me/", note: "Spotting misleading content online" },
+  fullFact: { label: "Full Fact", url: "https://fullfact.org/", note: "UK fact-checking charity" },
+  factCheckExplorer: {
+    label: "Google Fact Check Explorer",
+    url: "https://toolbox.google.com/factcheck/explorer",
+    note: "Search what fact-checkers have said about a claim",
+  },
+  saferInternetYoung: { label: "Safer Internet: advice for young people", url: "https://www.saferinternet.org.uk/advice-centre/young-people" },
+  khanAcademy: { label: "Khan Academy", url: "https://www.khanacademy.org/", note: "Free courses on almost anything" },
+  codeOrg: { label: "Code.org", url: "https://code.org/", note: "Free coding courses" },
+  bitesize: { label: "BBC Bitesize", url: "https://www.bbc.co.uk/bitesize" },
+  rpiProjects: {
+    label: "Raspberry Pi projects",
+    url: "https://projects.raspberrypi.org/en/projects",
+    note: "Hundreds of free, step-by-step coding projects",
+  },
+
+  // --- Digital Maker Stages 4 and 5 (all run in a web browser)
+  wokwi: {
+    label: "Wokwi electronics simulator",
+    url: "https://wokwi.com/",
+    note: "Wire up LEDs, buttons, buzzers, servos and sensors on screen",
+  },
+  wokwiArduino: { label: "Wokwi: new Arduino Uno project", url: "https://wokwi.com/projects/new/arduino-uno" },
+  wokwiPico: { label: "Wokwi: new Raspberry Pi Pico (MicroPython) project", url: "https://wokwi.com/projects/new/micropython-pi-pico" },
+  makecodeRadio: {
+    label: "MakeCode: radio blocks",
+    url: "https://makecode.microbit.org/reference/radio",
+    note: "Make two on-screen micro:bits talk to each other",
+  },
+  makecodeProjects: { label: "MakeCode project ideas", url: "https://makecode.microbit.org/projects" },
+  rpiEditor: {
+    label: "Raspberry Pi Code Editor",
+    url: "https://editor.raspberrypi.org/",
+    note: "Write Python or build a web page in your browser",
+  },
+  tinkercadCircuits: {
+    label: "Tinkercad Circuits",
+    url: "https://www.tinkercad.com/circuits",
+    note: "Needs an account (under 13s join through a leader's class code)",
+  },
+  piskel: { label: "Piskel", url: "https://www.piskelapp.com/", note: "Free pixel-art and sprite editor" },
+  photopea: { label: "Photopea", url: "https://www.photopea.com/", note: "Free image editor in the browser" },
+  coolestProjects: {
+    label: "Coolest Projects",
+    url: "https://coolestprojects.org/",
+    note: "Raspberry Pi's free online showcase. Mention you're a Scout!",
+  },
+  codeClub: { label: "Code Club", url: "https://codeclub.org/" },
+  coderDojo: { label: "CoderDojo", url: "https://coderdojo.com/" },
+  raspberryJam: { label: "Raspberry Jam events", url: "https://www.raspberrypi.org/jam/" },
+  scoutsMakeIt: {
+    label: "Scouts: Make it 'til you've made it",
+    url: "https://www.scouts.org.uk/activities/make-it-til-you-ve-made-it/",
+  },
+  scoutsGetReal: { label: "Scouts: Let's get real", url: "https://www.scouts.org.uk/activities/let-s-get-real/" },
+  sdgs: { label: "UN Sustainable Development Goals", url: "https://sdgs.un.org/goals", note: "Ideas for problems worth solving" },
+  instructables: { label: "Instructables", url: "https://www.instructables.com/", note: "Check the age rules first; a leader may need to post for you" },
 } satisfies Record<string, LinkRef>;
 
 export const sheet = (label: string, file: string): LinkRef => ({

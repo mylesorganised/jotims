@@ -9,6 +9,8 @@ import { getGroupProgress } from "@/lib/data";
 import { badgeProgress, type BadgeProgress } from "@/lib/progress";
 
 export const metadata: Metadata = { title: "Badge tracker" };
+// Signed-in page: allowed to block on the session (see the panel layout).
+export const instant = false;
 
 /** Columns: the section's own Communicator, then the staged badges. */
 const COLUMNS = [

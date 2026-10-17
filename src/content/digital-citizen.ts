@@ -638,3 +638,344 @@ export const digitalCitizen3: BadgeDef = {
   parts: stage3.map((t) => ({ kind: "task" as const, taskId: t.id })),
 };
 
+
+// ---------------------------------------------------------------- Stage 4
+
+const SCOUT_LAW = [
+  "A Scout is to be trusted.",
+  "A Scout is loyal.",
+  "A Scout is friendly and considerate.",
+  "A Scout belongs to the worldwide family of Scouts.",
+  "A Scout has courage in all difficulties.",
+  "A Scout makes good use of time and is careful of possessions and property.",
+  "A Scout has self-respect and respect for others.",
+];
+
+const stage4: TaskDef[] = [
+  {
+    id: "online-footprint",
+    title: "Your online footprint",
+    summary: "Show what someone could find out about you online, and how you'd hide it.",
+    emoji: "👣",
+    minutes: 40,
+    review: "self",
+    steps: [
+      {
+        title: "Where does your information live?",
+        body: [
+          "Every time you post, play, sign up or get tagged, you leave a little trail. Think about everywhere information about you could turn up online.",
+        ],
+        bullets: [
+          "Game and app profiles and usernames",
+          "Photos you or other people have posted (and where they were taken)",
+          "Comments, likes and videos",
+          "School, club or team websites and match reports",
+          "Things your family or friends have shared about you",
+        ],
+        links: [L.scoutsShareDontShare, L.scoutsDigitalDetectives],
+        fields: [{ kind: "list", id: "places", label: "Places my information could be found", count: 6, min: 4, required: true }],
+      },
+      {
+        title: "What could someone find, and how would you hide it?",
+        body: [
+          "For each kind of information, think about how you could hide it or take it down if you wanted to: privacy settings, deleting posts, asking someone to remove a photo, turning off location, or using a nickname.",
+        ],
+        warning: "Leave out anything you're not comfortable with. You don't need to write your real details here; describe the kind of information instead (e.g. \"my school's name\").",
+        links: [L.childnet, L.saferInternetYoung],
+        fields: [
+          {
+            kind: "table",
+            id: "info",
+            label: "My information",
+            columns: [
+              { id: "what", label: "What could be found", placeholder: "My full name" },
+              { id: "where", label: "Where", placeholder: "Football club website" },
+              { id: "hide", label: "How I'd hide it", placeholder: "Ask the club to use first names only" },
+            ],
+            rows: 6,
+            minRows: 4,
+            required: true,
+          },
+        ],
+      },
+      {
+        title: "Show it creatively",
+        body: [
+          "Show all of this in a creative way of your choice: a poster, a mind map, a comic strip, a slideshow, a short video or a Scratch animation.",
+        ],
+        fields: [
+          { kind: "upload", id: "creation", label: "Upload what you made", multiple: true, required: true },
+          { kind: "text", id: "rights", label: "What rights do you have over information about you online?", long: true, required: true },
+        ],
+        links: [L.icoPublic],
+      },
+    ],
+  },
+  {
+    id: "algorithms-ads",
+    title: "Algorithms and targeted adverts",
+    summary: "Find out how your information decides what you see, then teach others.",
+    emoji: "🎯",
+    minutes: 50,
+    review: "self",
+    steps: [
+      {
+        title: "Research",
+        body: [
+          "Apps and websites collect information about what you watch, click, like and buy. **Algorithms** use it to decide what to show you next, and **targeted adverts** use it to sell you things.",
+        ],
+        links: [L.yourOnlineChoices, L.scoutsSponsored, L.icoPublic],
+        fields: [
+          { kind: "text", id: "collect", label: "What information do apps and websites collect about young people?", long: true, required: true },
+          { kind: "text", id: "algorithms", label: "How do algorithms use it to decide what you see?", long: true, required: true },
+          { kind: "text", id: "ads", label: "How do targeted adverts work? How can you spot one?", long: true, required: true },
+          { kind: "text", id: "control", label: "What can you do to control it? (settings, cookie choices, ad choices…)", long: true, required: true },
+        ],
+      },
+      {
+        title: "Create an activity",
+        body: ["Create an activity that shows other young people what you found out: a quiz, a game, a card sort, a role-play or an online quiz."],
+        fields: [
+          { kind: "text", id: "activity", label: "Describe your activity and how to run it", long: true, required: true },
+          { kind: "upload", id: "materials", label: "Upload your activity (cards, slides, quiz…)", multiple: true, required: true },
+        ],
+      },
+      {
+        title: "Try it out",
+        body: ["Run your activity with other young people. What did they learn?"],
+        fields: [{ kind: "text", id: "feedback", label: "How did it go? What surprised people?", long: true }],
+      },
+    ],
+  },
+  {
+    id: "misinformation-debate",
+    title: "Debate a topic full of misinformation",
+    summary: "Debate using only evidence you find online, then judge how reliable it was.",
+    emoji: "🗣️",
+    minutes: 60,
+    review: "leader",
+    leaderCheck: "The Scout took part in a debate using online evidence, then discussed how reliable that evidence was.",
+    steps: [
+      {
+        title: "Pick a topic",
+        body: [
+          "Choose a topic you think has lots of misinformation online, for example a health myth, a science or climate claim, something in the news, or a viral \"fact\" about a game or celebrity.",
+        ],
+        links: [L.scoutsTwoSides],
+        fields: [
+          { kind: "text", id: "topic", label: "Our debate topic", required: true },
+          { kind: "choice", id: "side", label: "Which side are you arguing?", options: ["For", "Against"], required: true },
+        ],
+      },
+      {
+        title: "Find your evidence (online only)",
+        body: ["Before you trust something, check it:"],
+        bullets: [
+          "**Who** made it? Are they an expert, a news organisation, or anyone?",
+          "**When** was it published? Is it out of date?",
+          "**Can you find it somewhere else** reliable?",
+          "Is it trying to make you **angry or scared**, or sell you something?",
+          "Have **fact-checkers** looked at it?",
+        ],
+        links: [L.fullFact, L.factCheckExplorer, L.childnetTrustMe],
+        fields: [
+          {
+            kind: "table",
+            id: "evidence",
+            label: "My evidence",
+            columns: [
+              { id: "claim", label: "Claim or fact" },
+              { id: "source", label: "Where I found it" },
+              { id: "reliable", label: "Reliable? Why?" },
+            ],
+            rows: 5,
+            minRows: 3,
+            required: true,
+          },
+        ],
+      },
+      {
+        title: "Debate!",
+        body: ["Take part in the debate with your group. Listen to the other side and ask them where their evidence came from."],
+        withLeader: true,
+        tools: ["timer-2"],
+      },
+      {
+        title: "Talk about it",
+        fields: [
+          {
+            kind: "text",
+            id: "reflection",
+            label: "How easy was it to know whether the evidence you found was reliable? What would you do differently next time?",
+            long: true,
+            required: true,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "scout-law-online",
+    title: "The Scout Law, online",
+    summary: "Make a digital version of the Scout Law for life online.",
+    emoji: "⚜️",
+    minutes: 45,
+    review: "self",
+    steps: [
+      {
+        title: "Each law, online",
+        body: ["For each part of the Scout Law, how could you follow it when you're online?"],
+        bullets: SCOUT_LAW,
+        fields: [
+          {
+            kind: "table",
+            id: "laws",
+            label: "The Scout Law online",
+            columns: [
+              { id: "law", label: "Law (1 to 7)", placeholder: "1. To be trusted" },
+              { id: "online", label: "How I can follow it online", placeholder: "Only share things I know are true" },
+            ],
+            rows: 7,
+            minRows: 7,
+            required: true,
+          },
+        ],
+      },
+      {
+        title: "Make it digital",
+        body: ["Create a digital version: a slideshow, an infographic, a short video, a web page, or a Scratch animation."],
+        links: [L.scratch, L.rpiEditor],
+        fields: [
+          { kind: "upload", id: "creation", label: "Upload it, or a screenshot of it", multiple: true, required: true },
+          { kind: "text", id: "link", label: "Link to it online (optional)", placeholder: "https://…" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "online-course",
+    title: "Complete an online course",
+    summary: "Learn something new online, then share it with other young people.",
+    emoji: "🎓",
+    minutes: 90,
+    review: "leader",
+    leaderCheck: "The Scout completed an online course and shared some of what they learned with other young people.",
+    steps: [
+      {
+        title: "Choose a course",
+        body: ["Pick any free online course or tutorial series you like: coding, a language, first aid, art, music, science…"],
+        links: [L.khanAcademy, L.codeOrg, L.rpiProjects, L.bitesize, L.scoutsTeachYou],
+        warning: "Check the course is right for your age, and ask a leader or parent before signing up for anything.",
+        fields: [
+          { kind: "text", id: "course", label: "Which course?", required: true },
+          { kind: "text", id: "course_link", label: "Link to it", placeholder: "https://…" },
+        ],
+      },
+      {
+        title: "Complete it",
+        fields: [
+          { kind: "text", id: "learned", label: "What did you learn?", long: true, required: true },
+          { kind: "upload", id: "proof", label: "Certificate or screenshot showing you finished (optional)", accept: "image/*,application/pdf" },
+        ],
+      },
+      {
+        title: "Share what you learned",
+        body: ["Share some of what you learned with other young people: a mini lesson, a demo, a poster or a quiz."],
+        withLeader: true,
+        fields: [{ kind: "text", id: "shared", label: "How did you share it, and with who?", long: true, required: true }],
+      },
+    ],
+  },
+  {
+    id: "collaborate",
+    title: "Team up with young people far away",
+    summary: "Use a collaboration tool with a team from elsewhere to make a difference.",
+    emoji: "🌍",
+    minutes: 120,
+    review: "leader",
+    leaderCheck:
+      "The Scout worked in a team including young people from elsewhere in the country or world, using a digital collaboration tool, towards a goal that benefits Scouts, a cause, or young people's voices.",
+    note: "JOTA-JOTI is the perfect time for this: you're already chatting to Scouts all over the world!",
+    steps: [
+      {
+        title: "Pick a goal",
+        fields: [
+          {
+            kind: "choice",
+            id: "goal",
+            label: "Your team will make something that…",
+            options: ["Benefits Scouts", "Benefits a charity or cause we care about", "Gets young people's voices heard by national decision makers"],
+            required: true,
+          },
+          { kind: "text", id: "idea", label: "What will you make or do?", long: true, required: true },
+        ],
+      },
+      {
+        title: "Form your team",
+        body: ["Your team must include young people from other parts of the country or the world, for example Scouts you meet on JOTI."],
+        warning: "Only use tools and accounts a leader has set up or agreed to. Never share your address, school or phone number, and tell a leader if anyone makes you uncomfortable.",
+        links: [L.jotaJoti],
+        fields: [
+          { kind: "text", id: "team", label: "Who's in your team, and where are they from? (first names and countries only)", long: true, required: true },
+          {
+            kind: "text",
+            id: "tool",
+            label: "Which digital collaboration tool will you use?",
+            placeholder: "e.g. a shared document, an online whiteboard, a JOTI chat room",
+            required: true,
+          },
+        ],
+      },
+      {
+        title: "Work together",
+        withLeader: true,
+        fields: [
+          { kind: "text", id: "made", label: "What did your team achieve?", long: true, required: true },
+          { kind: "text", id: "teamwork", label: "What was easy or hard about working with people far away?", long: true, required: true },
+          { kind: "upload", id: "evidence", label: "Screenshots or what you made", multiple: true, required: true },
+        ],
+      },
+    ],
+  },
+];
+
+export const digitalCitizen4: BadgeDef = {
+  ...common,
+  id: "digital-citizen-4",
+  stage: 4,
+  prerequisite: "digital-citizen-3",
+  sections: ["scouts"],
+  recommendedFor: ["scouts"],
+  tagline: "Data rights, misinformation and working with the world.",
+  intro: "Complete every task, thinking about the risks of each activity and how to stay safe. For the first one, pick one of two options.",
+  tasks: stage4,
+  parts: [
+    {
+      kind: "choice",
+      id: "rights",
+      title: "Your rights with online information",
+      description: "Pick one of these two.",
+      pick: 1,
+      options: [
+        {
+          id: "footprint",
+          title: "Your online footprint",
+          emoji: "👣",
+          summary: "Show what could be found about you, and how you'd hide it.",
+          taskIds: ["online-footprint"],
+        },
+        {
+          id: "algorithms",
+          title: "Algorithms and adverts",
+          emoji: "🎯",
+          summary: "Research how your data is used, then teach others.",
+          taskIds: ["algorithms-ads"],
+        },
+      ],
+    },
+    { kind: "task", taskId: "misinformation-debate" },
+    { kind: "task", taskId: "scout-law-online" },
+    { kind: "task", taskId: "online-course" },
+    { kind: "task", taskId: "collaborate" },
+  ],
+};

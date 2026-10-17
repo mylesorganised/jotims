@@ -10,6 +10,8 @@ import { listLeaders } from "@/lib/leaders";
 import { requestTime } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Leaders" };
+// Signed-in page: allowed to block on the session (see the panel layout).
+export const instant = false;
 
 export default async function LeadersPage() {
   const me = await requireLeader();

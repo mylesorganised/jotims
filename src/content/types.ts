@@ -56,7 +56,7 @@ export type FieldDef =
       minRows?: number;
     })
   | (FieldBase & { kind: "choice"; options: string[] })
-  | (FieldBase & { kind: "checklist"; items: string[]; requireAll?: boolean })
+  | (FieldBase & { kind: "checklist"; items: string[]; requireAll?: boolean; /** at least this many ticked (default 1) */ min?: number })
   | (FieldBase & { kind: "upload"; accept?: string; multiple?: boolean })
   | (FieldBase & { kind: "led" });
 

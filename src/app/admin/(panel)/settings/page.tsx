@@ -8,6 +8,8 @@ import { getSettings } from "@/lib/settings";
 import { uploadMode } from "@/lib/uploads";
 
 export const metadata: Metadata = { title: "Settings" };
+// Signed-in page: allowed to block on the session (see the panel layout).
+export const instant = false;
 
 export default async function SettingsPage() {
   await requireLeader();

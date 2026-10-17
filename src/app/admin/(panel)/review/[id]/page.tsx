@@ -20,6 +20,8 @@ import { ageOn, getProgressById, getReviewQueue, getTaskUploads, requestTime } f
 import { formatDateTime, timeAgo } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Review submission" };
+// Signed-in page: allowed to block on the session (see the panel layout).
+export const instant = false;
 
 export default async function ReviewDetailPage({ params }: PageProps<"/admin/review/[id]">) {
   await requireLeader();

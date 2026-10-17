@@ -14,6 +14,8 @@ import { timeAgo } from "@/lib/format";
 import { badgeProgress } from "@/lib/progress";
 
 export const metadata: Metadata = { title: "Dashboard" };
+// Signed-in page: allowed to block on the session (see the panel layout).
+export const instant = false;
 
 export default async function AdminDashboard() {
   const leader = await requireLeader();

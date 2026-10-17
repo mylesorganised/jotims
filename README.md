@@ -10,7 +10,9 @@ Badges included (built from the group's own sheets):
 | --- | --- | --- |
 | Communicator | Beavers, Cubs and Scouts each get their own version | Beavers: 5 tasks. Cubs: 4 tasks + 3 of 4 extras. Scouts: 3 of 4 subjects |
 | Digital Citizen Stages 1–3 | Everyone | Every task in the stage |
+| Digital Citizen Stage 4 | Scouts | 1 of 2 rights tasks, then a debate, Scout Law, online course and a team project |
 | Digital Maker Stages 1–3 | Everyone | Every task in the stage |
+| Digital Maker Stages 4–5 | Scouts | Open-ended build projects, all doable on a laptop with simulators (MakeCode, Wokwi) |
 
 Stages unlock in order: Stage 2 opens once every Stage 1 task is done, and
 Stage 3 once Stage 2 is. If someone did an earlier stage at another time, a

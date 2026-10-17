@@ -48,7 +48,7 @@ export function fieldComplete(field: FieldDef, value: AnswerValue | undefined, u
       return asText(value).length > 0;
     case "checklist": {
       const ticks = asBools(value, field.items.length);
-      return field.requireAll ? ticks.every(Boolean) : ticks.some(Boolean);
+      return field.requireAll ? ticks.every(Boolean) : ticks.filter(Boolean).length >= (field.min ?? 1);
     }
     case "upload":
       return uploadCount > 0;

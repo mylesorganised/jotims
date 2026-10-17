@@ -1,6 +1,6 @@
 import { beaversCommunicator, cubsCommunicator, scoutsCommunicator } from "./communicator";
-import { digitalCitizen1, digitalCitizen2, digitalCitizen3 } from "./digital-citizen";
-import { digitalMaker1, digitalMaker2, digitalMaker3 } from "./digital-maker";
+import { digitalCitizen1, digitalCitizen2, digitalCitizen3, digitalCitizen4 } from "./digital-citizen";
+import { digitalMaker1, digitalMaker2, digitalMaker3, digitalMaker4, digitalMaker5 } from "./digital-maker";
 import type { BadgeDef, FieldDef, PartDef, Section, TaskDef } from "./types";
 
 export * from "./types";
@@ -12,9 +12,12 @@ export const BADGES: BadgeDef[] = [
   digitalCitizen1,
   digitalCitizen2,
   digitalCitizen3,
+  digitalCitizen4,
   digitalMaker1,
   digitalMaker2,
   digitalMaker3,
+  digitalMaker4,
+  digitalMaker5,
 ];
 
 export const SECTIONS: { id: Section; name: string; ages: string; color: string; emoji: string }[] = [

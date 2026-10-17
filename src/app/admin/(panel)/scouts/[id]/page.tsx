@@ -22,6 +22,8 @@ import { badgeProgress, lockedBy } from "@/lib/progress";
 import { formatDob } from "@/lib/validate";
 
 export const metadata: Metadata = { title: "Young person" };
+// Signed-in page: allowed to block on the session (see the panel layout).
+export const instant = false;
 
 export default async function ScoutDetailPage({ params }: PageProps<"/admin/scouts/[id]">) {
   await requireLeader();

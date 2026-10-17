@@ -7,6 +7,8 @@ import { requireLeader } from "@/lib/auth";
 import { getRecentSubmissions, getReviewQueue, requestTime } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Review" };
+// Signed-in page: allowed to block on the session (see the panel layout).
+export const instant = false;
 
 export default async function ReviewPage({ searchParams }: PageProps<"/admin/review">) {
   await requireLeader();

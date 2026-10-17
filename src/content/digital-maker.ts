@@ -725,3 +725,470 @@ export const digitalMaker3: BadgeDef = {
   tasks: stage3,
   parts: stage3.map((t) => ({ kind: "task" as const, taskId: t.id })),
 };
+
+// ------------------------------------------------- Stages 4 and 5 (shared)
+
+const laptopOnly =
+  "No real electronics needed. The on-screen micro:bit in MakeCode and the virtual Arduino and Raspberry Pi Pico in Wokwi behave like the real thing, so everything here works on a laptop.";
+
+const makingTools = [L.makecode, L.makecodeRadio, L.wokwi, L.rpiEditor, L.scratch, L.piskel, L.photopea, L.tinkercadCircuits];
+
+const simulatorStuck = [
+  {
+    problem: "I can't see a second micro:bit for my radio project",
+    fix: "In MakeCode, add a 'radio send' block and a second simulated micro:bit appears automatically under the first.",
+  },
+  {
+    problem: "My Wokwi circuit doesn't do anything",
+    fix: "Press the green play button to start the simulation. Check each wire goes to the right pin, and that your code uses the same pin numbers.",
+  },
+  {
+    problem: "How do I add parts in Wokwi?",
+    fix: "Click the blue + button above the diagram, pick a part (LED, button, buzzer, sensor…), then drag from one pin to another to add a wire.",
+  },
+  { problem: "I've changed something and now it's broken", fix: "Undo back to the last working version, then change one thing at a time and test after each change." },
+  {
+    problem: "How do I share my project?",
+    fix: "MakeCode: Share, then Publish, and copy the link (no account needed). Wokwi and Scratch need an account to save a link; if you don't have one, take screenshots or ask a leader to save it for you.",
+  },
+];
+
+// ---------------------------------------------------------------- Stage 4
+
+const stage4: TaskDef[] = [
+  {
+    id: "scout-gadget",
+    title: "Make something for a Scouting activity",
+    summary: "Combine coding, digital art and (virtual) electronics to solve a Scout challenge.",
+    emoji: "🛠️",
+    minutes: 240,
+    review: "leader",
+    leaderCheck:
+      "The Scout combined at least two digital making skills (programming, digital art, digital devices, electronic components) to make something that could be used in a Scouting activity, and can demonstrate it.",
+    note: "This is a big project. It's fine to spread it over a few meetings or carry on at home; your answers save as you go.",
+    steps: [
+      {
+        title: "Mind map Scout activities",
+        body: [
+          "Make a big mind map of as many Scout activities as you can: games, hikes, camps, challenges, adventures.",
+          "Then break each one into parts. A wide game might be \"choose a game\", \"pick teams\" and \"keep score\". A hike might be \"plan a route\", \"pack kit\" and \"track our progress\".",
+        ],
+        links: [L.scoutsMakeIt],
+        fields: [
+          {
+            kind: "list",
+            id: "activities",
+            label: "Activities and their parts",
+            count: 6,
+            min: 3,
+            placeholder: "e.g. Wide game: pick teams, keep score, call time",
+            required: true,
+          },
+          { kind: "upload", id: "mindmap", label: "Photo of your mind map (optional)", accept: "image/*" },
+        ],
+      },
+      {
+        title: "Pick your idea",
+        body: ["Which part of an activity could technology help with? Here are some ideas that all work on a laptop:"],
+        bullets: [
+          "A wide-game scoreboard: two micro:bits send points to each other by radio",
+          "A camp-cooking timer with flashing LEDs and a buzzer (Wokwi)",
+          "A Morse code messenger between two micro:bits",
+          "An orienteering helper using the micro:bit's compass",
+          "A night-hike signal light that flashes patterns",
+          "A kit checklist or patrol duty rota web page",
+          "A reaction-time game for a games night",
+        ],
+        fields: [
+          { kind: "text", id: "idea", label: "My idea", long: true, required: true },
+          { kind: "text", id: "helps", label: "Which Scout activity does it help with, and how?", long: true, required: true },
+        ],
+      },
+      {
+        title: "Choose your tools",
+        body: ["You need to **combine at least two** digital making skills."],
+        tip: laptopOnly,
+        links: makingTools,
+        fields: [
+          {
+            kind: "checklist",
+            id: "skills",
+            label: "Skills I'm combining",
+            hint: "Tick at least two.",
+            items: [
+              "Programming",
+              "Digital art (graphics, icons, sprites, a screen design)",
+              "Digital devices (a micro:bit, Arduino or Raspberry Pi Pico, on a simulator)",
+              "Electronic components (LEDs, buttons, buzzers, sensors, on a simulator)",
+            ],
+            min: 2,
+            required: true,
+          },
+          { kind: "text", id: "tools", label: "Which tools will you use?", placeholder: "e.g. MakeCode and Piskel", required: true },
+        ],
+      },
+      {
+        title: "Plan it",
+        body: ["Before you build, plan how it works."],
+        fields: [
+          { kind: "text", id: "inputs", label: "Inputs: what goes in? (buttons, sensors, shaking, typing…)", long: true, required: true },
+          { kind: "text", id: "outputs", label: "Outputs: what comes out? (lights, sounds, messages, a screen…)", long: true, required: true },
+          { kind: "upload", id: "design", label: "Upload a sketch of your design (optional)", accept: "image/*" },
+          { kind: "text", id: "help", label: "What might you need help with?", long: true },
+        ],
+      },
+      {
+        title: "Build a prototype",
+        body: [
+          "Start small: get the simplest version working first, then add to it. Take screenshots as you go; they're your evidence.",
+        ],
+        stuck: simulatorStuck,
+        fields: [
+          { kind: "upload", id: "prototype", label: "Screenshot of your prototype", accept: "image/*", multiple: true, required: true },
+          { kind: "text", id: "link", label: "Share link to your project", placeholder: "https://…" },
+        ],
+      },
+      {
+        title: "Get feedback and improve",
+        body: ["Show your prototype to someone else. Ask them to try it without your help. What confused them? What would make it better?"],
+        fields: [
+          {
+            kind: "table",
+            id: "changes",
+            label: "Feedback and changes",
+            columns: [
+              { id: "feedback", label: "Feedback" },
+              { id: "change", label: "What I changed" },
+            ],
+            rows: 4,
+            minRows: 2,
+            required: true,
+          },
+        ],
+      },
+      {
+        title: "Add the digital art",
+        body: ["Make it look great: design a logo, icons, sprites, a screen layout, or LED pictures. Piskel and Photopea are free in the browser."],
+        links: [L.piskel, L.photopea],
+        fields: [{ kind: "upload", id: "art", label: "Upload your artwork", accept: "image/*", multiple: true }],
+      },
+      {
+        title: "Show it off",
+        body: ["Plan how you'd use it in a real Scout activity, then demonstrate it to a leader."],
+        withLeader: true,
+        fields: [
+          { kind: "text", id: "use", label: "How would you use it in a Scout activity?", long: true, required: true },
+          { kind: "upload", id: "final", label: "Screenshots or a short video of the finished version", accept: "image/*,video/*", multiple: true, required: true },
+          { kind: "text", id: "final_link", label: "Share link to the finished project", placeholder: "https://…" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "making-event",
+    title: "Show your work at a digital making event",
+    summary: "Share your project at an event such as Coolest Projects or a Code Club.",
+    emoji: "🏟️",
+    minutes: 120,
+    review: "leader",
+    leaderCheck: "The Scout showed their work at a digital making event.",
+    steps: [
+      {
+        title: "Find an event",
+        body: [
+          "**Coolest Projects** is Raspberry Pi's free online showcase, so you can take part from a laptop at home. You could also go to a Raspberry Jam, a Code Club, a CoderDojo or a hackathon.",
+        ],
+        warning: "Always ask a leader and your parent or carer before signing up for an event.",
+        links: [L.coolestProjects, L.raspberryJam, L.codeClub, L.coderDojo],
+        fields: [
+          { kind: "text", id: "event", label: "Which event?", required: true },
+          { kind: "text", id: "when", label: "When is it?" },
+        ],
+      },
+      {
+        title: "Show your work",
+        withLeader: true,
+        fields: [
+          { kind: "text", id: "showed", label: "What did you show, and what did people say?", long: true, required: true },
+          { kind: "upload", id: "proof", label: "Photo, screenshot or certificate", accept: "image/*,application/pdf", multiple: true },
+        ],
+      },
+    ],
+  },
+  {
+    id: "help-maker",
+    title: "Help someone with their Digital Maker badge",
+    summary: "Help a Beaver, Cub or Scout work towards any Digital Maker stage.",
+    emoji: "🤝",
+    minutes: 60,
+    review: "leader",
+    leaderCheck: "The Scout helped another young person work towards a Digital Maker Staged Activity Badge.",
+    steps: [
+      {
+        title: "Find someone to help",
+        body: ["Help someone in your section, or a Beaver or Cub, with any stage of their Digital Maker badge. They can follow it in this app too!"],
+        tip: "Good helpers don't take over. Ask questions like \"What do you think happens if…?\" and let them press the buttons.",
+        fields: [
+          { kind: "text", id: "who", label: "Who did you help? (first name and section)", required: true },
+          { kind: "text", id: "what", label: "Which stage and task were they working on?", required: true },
+        ],
+      },
+      {
+        title: "Help them",
+        withLeader: true,
+        fields: [
+          { kind: "text", id: "how", label: "How did you help?", long: true, required: true },
+          { kind: "text", id: "learned", label: "What did you learn about helping someone else learn?", long: true, required: true },
+        ],
+      },
+    ],
+  },
+];
+
+export const digitalMaker4: BadgeDef = {
+  ...common,
+  id: "digital-maker-4",
+  stage: 4,
+  prerequisite: "digital-maker-3",
+  sections: ["scouts"],
+  recommendedFor: ["scouts"],
+  tagline: "Combine your skills to solve a Scouting challenge.",
+  intro: `Make something that could be used in a Scouting activity, then show it at an event or help someone else. ${laptopOnly}`,
+  tasks: stage4,
+  parts: [
+    { kind: "task", taskId: "scout-gadget" },
+    {
+      kind: "choice",
+      id: "share",
+      title: "Share your skills",
+      description: "Pick one of these two.",
+      pick: 1,
+      options: [
+        {
+          id: "event",
+          title: "A digital making event",
+          emoji: "🏟️",
+          summary: "Show your project at Coolest Projects, a Raspberry Jam, a Code Club…",
+          taskIds: ["making-event"],
+        },
+        {
+          id: "help",
+          title: "Help someone else",
+          emoji: "🤝",
+          summary: "Help a Beaver, Cub or Scout with their Digital Maker badge.",
+          taskIds: ["help-maker"],
+        },
+      ],
+    },
+  ],
+};
+
+// ---------------------------------------------------------------- Stage 5
+
+const stage5: TaskDef[] = [
+  {
+    id: "find-problem",
+    title: "Find a real problem",
+    summary: "Pick a real local or global problem that technology could help with.",
+    emoji: "🔎",
+    minutes: 45,
+    review: "self",
+    steps: [
+      {
+        title: "Things that matter",
+        body: ["Think about things that matter to you, to your local community, and to the whole world."],
+        links: [L.sdgs, L.scoutsGetReal],
+        fields: [
+          { kind: "list", id: "me", label: "Things that matter to me", count: 3, min: 2, required: true },
+          { kind: "list", id: "local", label: "Problems in my local community", count: 3, min: 2, required: true },
+          { kind: "list", id: "world", label: "Problems in the world", count: 3, min: 2, required: true },
+        ],
+      },
+      {
+        title: "How could technology help?",
+        body: ["Look for themes. Shortlist a few problems and think about how a digital project could help with each one."],
+        tip: "Keep it realistic. A carbon-footprint calculator is a great project; an app that works out a carbon footprint from a photo is probably too advanced!",
+        fields: [
+          {
+            kind: "table",
+            id: "shortlist",
+            label: "My shortlist",
+            columns: [
+              { id: "problem", label: "Problem" },
+              { id: "tech", label: "How technology could help" },
+              { id: "realistic", label: "Realistic for me?" },
+            ],
+            rows: 4,
+            minRows: 2,
+            required: true,
+          },
+        ],
+      },
+      {
+        title: "Choose one",
+        fields: [
+          { kind: "text", id: "problem", label: "The problem I'm going to solve", long: true, required: true },
+          { kind: "text", id: "who", label: "Who does it affect?", required: true },
+          { kind: "text", id: "success", label: "How will you know your solution works?", long: true, required: true },
+        ],
+      },
+    ],
+  },
+  {
+    id: "build-solution",
+    title: "Design and build your solution",
+    summary: "Plan it, prototype it, get feedback, then build it.",
+    emoji: "🧪",
+    minutes: 240,
+    review: "self",
+    note: "Big project! Spread it over several sessions; everything saves as you go.",
+    steps: [
+      {
+        title: "Choose your tools",
+        body: ["Pick the software, devices and components that suit your solution best."],
+        tip: laptopOnly,
+        links: makingTools,
+        fields: [{ kind: "text", id: "tools", label: "Which tools will you use, and why are they the best choice?", long: true, required: true }],
+      },
+      {
+        title: "Plan it",
+        fields: [
+          { kind: "text", id: "how", label: "How will your solution work?", long: true, required: true },
+          { kind: "text", id: "inputs", label: "Inputs (what goes in)", long: true, required: true },
+          { kind: "text", id: "outputs", label: "Outputs (what comes out)", long: true, required: true },
+          { kind: "upload", id: "design", label: "Upload your design sketches", accept: "image/*", multiple: true },
+        ],
+      },
+      {
+        title: "Build a prototype and get feedback",
+        body: ["Build a simple version that shows your idea. Show it to someone, ideally someone affected by the problem, and listen to what they say."],
+        stuck: simulatorStuck,
+        fields: [
+          { kind: "upload", id: "prototype", label: "Screenshots of your prototype", accept: "image/*", multiple: true, required: true },
+          { kind: "text", id: "feedback", label: "What feedback did you get?", long: true, required: true },
+        ],
+      },
+      {
+        title: "Build it properly",
+        body: ["Use the feedback to build the full version. Designing, testing and improving happen all the way through, not just at the end."],
+        fields: [
+          { kind: "upload", id: "build", label: "Screenshots of your build", accept: "image/*", multiple: true, required: true },
+          { kind: "text", id: "link", label: "Share link to your project", placeholder: "https://…" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "test-improve",
+    title: "Test and improve",
+    summary: "Test that it works, then make it better.",
+    emoji: "✅",
+    minutes: 90,
+    review: "leader",
+    leaderCheck: "The Scout has a working solution to a real problem, has tested it, and improved it based on the results.",
+    steps: [
+      {
+        title: "Test it",
+        body: ["Try it in lots of ways, including the ways people might get it wrong."],
+        fields: [
+          {
+            kind: "table",
+            id: "tests",
+            label: "My tests",
+            columns: [
+              { id: "test", label: "What I tested" },
+              { id: "expected", label: "What should happen" },
+              { id: "actual", label: "What happened" },
+              { id: "fixed", label: "Fixed?" },
+            ],
+            rows: 6,
+            minRows: 3,
+            required: true,
+          },
+        ],
+      },
+      {
+        title: "Improve it",
+        fields: [
+          { kind: "list", id: "improvements", label: "Improvements I made", count: 4, min: 2, required: true },
+          { kind: "upload", id: "final", label: "Screenshots or a short video of the final version", accept: "image/*,video/*", multiple: true, required: true },
+          { kind: "text", id: "final_link", label: "Share link to the final version", placeholder: "https://…" },
+        ],
+      },
+      {
+        title: "Show a leader",
+        withLeader: true,
+        fields: [
+          {
+            kind: "text",
+            id: "reflection",
+            label: "How did it feel to solve a real problem? How did you decide which solution was best?",
+            long: true,
+            required: true,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "share-guide",
+    title: "Share it so others can build it",
+    summary: "Make a guide that lets someone else build your project from scratch.",
+    emoji: "📚",
+    minutes: 120,
+    review: "leader",
+    leaderCheck:
+      "The Scout created a digital resource that would let someone with little experience replicate the project, or met people who could benefit and explained how they made it.",
+    steps: [
+      {
+        title: "Choose a format",
+        body: ["Your guide should let someone with very little experience build your project. It should be digital, in any format you like."],
+        fields: [
+          {
+            kind: "choice",
+            id: "format",
+            label: "I'm going to make…",
+            options: ["A video or video series", "A printable online guide", "A blog post", "A tutorial on a site like Instructables", "A meeting with people who could use it"],
+            required: true,
+          },
+          { kind: "text", id: "audience", label: "Who is it for?", required: true },
+        ],
+      },
+      {
+        title: "Make it easy to follow",
+        bullets: [
+          "Short, numbered steps",
+          "Pictures or screenshots of each step",
+          "A list of everything you need (and links to the free tools)",
+          "Captions on videos",
+          "Tips for when things go wrong",
+        ],
+        warning: "Check the age rules of any website before posting; a leader may need to post it for you. Don't show anyone's face or name without permission.",
+        links: [L.instructables],
+        fields: [{ kind: "text", id: "plan", label: "Plan your guide: what are the main sections?", long: true, required: true }],
+      },
+      {
+        title: "Make and share it",
+        withLeader: true,
+        fields: [
+          { kind: "upload", id: "guide", label: "Upload your guide (or screenshots of it)", multiple: true, required: true },
+          { kind: "text", id: "guide_link", label: "Link to where it's shared", placeholder: "https://…" },
+          { kind: "text", id: "response", label: "How did people respond? Did anyone try it?", long: true },
+        ],
+      },
+    ],
+  },
+];
+
+export const digitalMaker5: BadgeDef = {
+  ...common,
+  id: "digital-maker-5",
+  stage: 5,
+  prerequisite: "digital-maker-4",
+  sections: ["scouts"],
+  recommendedFor: ["scouts"],
+  tagline: "Solve a real-world problem and teach others how.",
+  intro: `Identify a real local or global problem, then design, build, test and improve a solution, and share how to make it. ${laptopOnly}`,
+  tasks: stage5,
+  parts: stage5.map((t) => ({ kind: "task" as const, taskId: t.id })),
+};
