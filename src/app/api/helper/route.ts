@@ -8,12 +8,15 @@ import { helperEnabled, overHelperLimit, streamChat, type ChatMessage } from "@/
 
 type Body = {
   mode?: "scout" | "leader";
+  conversationId?: string;
   messages?: { role?: string; content?: string }[];
   context?: { badgeId?: string; taskId?: string; step?: number; path?: string };
 };
 
 const MAX_HISTORY = 12;
 const MAX_CHARS = 1200;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Only a plain app path like /badges/x, never arbitrary text. */
 function safePath(path: unknown) {
@@ -39,12 +42,15 @@ export async function POST(request: Request) {
 
   let system: string;
   let scoutId: string | null = null;
+  let leader: { id: string; name: string } | null = null;
+  const conversationId = typeof body.conversationId === "string" && UUID.test(body.conversationId) ? body.conversationId : crypto.randomUUID();
+  const page = safePath(body.context?.path) ?? null;
   let badgeId: string | undefined;
   let taskId: string | undefined;
   let flagged: Promise<boolean> = Promise.resolve(false);
 
   if (body.mode === "leader") {
-    const leader = await getLeader();
+    leader = await getLeader();
     if (!leader) return text("Please log in again.", 401);
     if (overHelperLimit(`leader:${leader.id}`)) return text("That's a lot of questions! Have a short break and try again soon.", 429);
     system = leaderSystemPrompt(safePath(body.context?.path));
@@ -98,12 +104,13 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode(added));
         }
       }
-      if (scoutId) {
-        await logHelperMessages([
-          { scoutId, badgeId, taskId, role: "user", content: question.content, flagged: (await flagged.catch(() => false)) ? 1 : 0 },
-          { scoutId, badgeId, taskId, role: "assistant", content: reply || "(no reply)" },
-        ]).catch((error) => console.error("Could not log helper chat", error));
-      }
+      // Every chat is kept for leaders to read in Helper chats.
+      const who = scoutId ? { scoutId } : { leaderId: leader?.id, leaderName: leader?.name };
+      const where = { ...who, conversationId, page, badgeId, taskId };
+      await logHelperMessages([
+        { ...where, role: "user", content: question.content, flagged: (await flagged.catch(() => false)) ? 1 : 0 },
+        { ...where, role: "assistant", content: reply || "(no reply)" },
+      ]).catch((error) => console.error("Could not log helper chat", error));
       controller.close();
     },
   });

@@ -81,6 +81,10 @@ export const ANCHORS: AnchorDef[] = [
   { id: "person-signoff", scope: "leader", title: "Sign off", text: "Award the badge. 'Sign off anyway' works even if not every task is done, e.g. a stage done last year, which also unlocks the next stage.", where: "a young person's page, on each badge" },
   { id: "person-chats", scope: "leader", title: "Helper chats", text: "What they've asked the AI helper. Flagged messages are highlighted in red.", where: "a young person's page, bottom" },
   { id: "tracker-grid", scope: "leader", title: "Badge tracker", text: "Green tick = signed off, blue = ready to sign off, ring = % done, amber dot = waiting for review.", href: "/admin/badges", where: "Badge tracker page" },
+  { id: "admin-nav-chats", scope: "leader", title: "Helper chats", text: "Every question young people (and leaders) ask the AI helper, with the full answers. Search them, see flagged ones, or download them all.", href: "/admin/chats", where: "top menu" },
+  { id: "chats-filters", scope: "leader", title: "Filter chats", text: "Show everyone, just young people, just leaders, or only chats flagged as worrying.", href: "/admin/chats", where: "Helper chats page" },
+  { id: "chats-search", scope: "leader", title: "Search chats", text: "Find chats by a word in a question or answer, or by name.", href: "/admin/chats", where: "Helper chats page" },
+  { id: "chats-list", scope: "leader", title: "Conversations", text: "One row per chat. Open one to read the whole conversation.", href: "/admin/chats", where: "Helper chats page" },
   { id: "settings-ai", scope: "leader", title: "AI leader", text: "Switch the AI leader's reviewing and badge sign-off on or off, and choose whether it may approve tasks a leader would normally see in person.", href: "/admin/settings", where: "Settings page, under the login options" },
   { id: "settings-signup", scope: "leader", title: "Self sign-up", text: "Turn this off once everyone's on your list, so only people you've added can log in.", href: "/admin/settings", where: "Settings page" },
 ];

@@ -79,7 +79,7 @@ export function submissionState(input: {
       const judged =
         Boolean(field.required) &&
         (["text", "list", "table"].includes(field.kind) ||
-          (field.kind === "upload" && files.some((f) => f.startsWith("Image "))));
+          (field.kind === "upload" && files.some((f) => f.startsWith("Image ") || f.startsWith("Slides "))));
       fields.push({ key, field, label: field.label, judged });
     }
   });

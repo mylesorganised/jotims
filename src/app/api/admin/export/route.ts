@@ -2,13 +2,8 @@ import { BADGES, badgeName, getBadge, sectionName, type BadgeDef, type Section }
 import { getLeader } from "@/lib/auth";
 import { ageOn, getGroupProgress } from "@/lib/data";
 import { badgeProgress } from "@/lib/progress";
+import { csvCell } from "@/lib/csv";
 import { formatDob } from "@/lib/validate";
-
-function csvCell(value: string | number) {
-  const s = String(value);
-  // Quote everything; neutralise leading =,+,-,@ so spreadsheets don't run it as a formula.
-  return `"${(/^[=+\-@]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`;
-}
 
 /** Same columns as the badge tracker: the section's Communicator, then the staged badges. */
 const COLUMNS: { label: string; badgeFor: (s: Section) => BadgeDef }[] = [

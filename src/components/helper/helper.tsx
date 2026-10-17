@@ -187,6 +187,8 @@ function HelperChat({ mode, context }: { mode: HelperMode; context: HelperContex
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const abort = useRef<AbortController | null>(null);
+  /** one id per chat, so leaders can read it back as a single conversation */
+  const conversation = useRef<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLTextAreaElement>(null);
   const tour = useTour();
@@ -218,6 +220,7 @@ function HelperChat({ mode, context }: { mode: HelperMode; context: HelperContex
     const question = raw.trim();
     if (!question || busy) return;
     const history: Message[] = [...messages, { role: "user", content: question }];
+    conversation.current ??= crypto.randomUUID();
     setMessages([...history, { role: "assistant", content: "" }]);
     setInput("");
     setBusy(true);
@@ -233,7 +236,12 @@ function HelperChat({ mode, context }: { mode: HelperMode; context: HelperContex
       const res = await fetch("/api/helper", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, messages: history, context: { ...context, path: window.location.pathname } }),
+        body: JSON.stringify({
+          mode,
+          conversationId: conversation.current,
+          messages: history,
+          context: { ...context, path: window.location.pathname },
+        }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
@@ -291,6 +299,7 @@ function HelperChat({ mode, context }: { mode: HelperMode; context: HelperContex
                 onClick={() => {
                   abort.current?.abort();
                   setMessages([]);
+                  conversation.current = null;
                 }}
                 className="grid size-8 place-items-center rounded-lg hover:bg-white/15"
                 title="Start again"
@@ -308,7 +317,7 @@ function HelperChat({ mode, context }: { mode: HelperMode; context: HelperContex
             <p className="rounded-xl bg-white px-3 py-2 text-xs text-muted ring-1 ring-line">
               {isScout
                 ? "I'm a computer helper, so I can get things wrong. Leaders can read these chats. Never share personal details like your address, school or phone number. Need a real person? Press “Ask for help”."
-                : "Answers come from the badge content and guide built into this app. Double-check anything important."}
+                : "Answers come from the badge content and guide built into this app. Double-check anything important. Chats are saved in Helper chats."}
             </p>
             {messages.length === 0 && (
               <div className="space-y-2 pt-1">

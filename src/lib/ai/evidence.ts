@@ -1,19 +1,22 @@
 import "server-only";
 import type { FieldDef, TaskDef } from "@/content/types";
 import type { UploadRow } from "@/lib/data";
+import { isSlideDeck } from "@/lib/file-kinds";
 import { chatComplete, helperEnabled } from "@/lib/helper/openrouter";
 import { fileSize } from "@/lib/format";
 import { openStoredFile } from "@/lib/storage";
+import { slideText } from "./slides";
 
 const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+const MAX_DECK_BYTES = 30 * 1024 * 1024;
 
 const KNOWN_FILES: [RegExp, string][] = [
   [/\.sb3$/i, "a Scratch project file"],
   [/\.hex$/i, "a micro:bit program file"],
   [/\.py$/i, "a Python program"],
   [/\.(pdf)$/i, "a PDF document"],
-  [/\.(pptx?|key|odp)$/i, "a slideshow"],
+  [/\.(pptx?|ppsx|key|odp)$/i, "a slideshow"],
   [/\.(docx?|odt|txt)$/i, "a document"],
   [/\.(mp4|mov|webm|m4v|avi)$/i, "a video"],
   [/\.(mp3|m4a|wav|ogg)$/i, "an audio recording"],
@@ -23,8 +26,8 @@ function kindOfFile(upload: UploadRow) {
   return KNOWN_FILES.find(([re]) => re.test(upload.fileName))?.[1] ?? (upload.contentType.startsWith("image/") ? "an image" : "a file");
 }
 
-async function readBytes(upload: UploadRow) {
-  if (upload.size > MAX_IMAGE_BYTES) return null;
+async function readBytes(upload: UploadRow, max = MAX_IMAGE_BYTES) {
+  if (upload.size > max) return null;
   const stream = await openStoredFile(upload);
   return stream ? Buffer.from(await new Response(stream).arrayBuffer()) : null;
 }
@@ -41,6 +44,13 @@ export async function describeUploads(task: TaskDef, uploads: UploadRow[], limit
   await Promise.all(
     uploads.map(async (upload) => {
       const plain = `"${upload.fileName}" (${kindOfFile(upload)}, ${fileSize(upload.size)}), not opened`;
+      if (isSlideDeck(upload)) {
+        // Slides are read as text: what's written on each slide and how many pictures.
+        const bytes = await readBytes(upload, MAX_DECK_BYTES).catch(() => null);
+        const text = bytes && slideText(bytes);
+        out.set(upload.id, text ? `Slides "${upload.fileName}": ${text}` : plain);
+        return;
+      }
       if (!helperEnabled() || !IMAGE_TYPES.has(upload.contentType) || described >= limit) {
         out.set(upload.id, plain);
         return;

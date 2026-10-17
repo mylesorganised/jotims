@@ -19,6 +19,7 @@ const NAV = [
   { href: "/admin/scouts", label: "Young people", tour: "admin-nav-scouts" },
   { href: "/admin/badges", label: "Badge tracker", tour: "admin-nav-badges" },
   { href: "/admin/library", label: "Badge library", tour: "admin-nav-library" },
+  { href: "/admin/chats", label: "Helper chats", tour: "admin-nav-chats" },
   { href: "/admin/leaders", label: "Leaders", tour: "admin-nav-leaders" },
   { href: "/admin/settings", label: "Settings", tour: "admin-nav-settings" },
 ];

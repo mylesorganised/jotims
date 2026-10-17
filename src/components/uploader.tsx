@@ -1,9 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, FileText, Film, LoaderCircle, Upload, X } from "lucide-react";
+import { Camera, FileText, Film, LoaderCircle, Presentation, Upload, X } from "lucide-react";
 import { deleteUploadAction, recordBlobUploadAction, type RecordedUpload } from "@/app/actions/scout";
+import { isSlideDeck } from "@/lib/file-kinds";
 import { fileSize } from "@/lib/format";
+import { SlideViewer } from "./slides/slide-viewer";
 import { Callout, cn } from "./ui";
 
 export type UploadConfig = {
@@ -68,9 +70,24 @@ export function FilePreview({ file, onRemove }: { file: RecordedUpload; onRemove
   const src = `/api/files/${file.id}`;
   const isImage = file.contentType.startsWith("image/");
   const isVideo = file.contentType.startsWith("video/");
+  const isSlides = isSlideDeck(file);
+  const [viewing, setViewing] = useState(false);
   return (
     <div className="group relative overflow-hidden rounded-xl bg-white ring-1 ring-line">
-      {isImage ? (
+      {isSlides ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setViewing(true)}
+            className="flex h-32 w-full flex-col items-center justify-center gap-2 bg-orange-50 p-3 text-center transition hover:bg-orange-100"
+          >
+            <Presentation className="size-8 text-orange-600" />
+            <span className="line-clamp-2 text-xs font-semibold break-all">{file.fileName}</span>
+            <span className="rounded-full bg-orange-600 px-2.5 py-0.5 text-[11px] font-bold text-white">View slides</span>
+          </button>
+          {viewing && <SlideViewer fileId={file.id} fileName={file.fileName} onClose={() => setViewing(false)} />}
+        </>
+      ) : isImage ? (
         <a href={src} target="_blank" rel="noopener noreferrer" className="block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={src} alt={file.fileName} className="h-32 w-full object-cover" loading="lazy" />

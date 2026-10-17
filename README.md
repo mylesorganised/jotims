@@ -82,8 +82,8 @@ in, so a typical question costs a tiny fraction of a penny).
   unsafe. Messages that suggest a young person might be unsafe, upset or
   bullied are flagged (by Jev when `JEV_API_KEY` is set, otherwise by a
   keyword list): their hand goes up on the dashboard and the chat is
-  highlighted. Every young person's chats are visible on their page in the
-  leaders' area.
+  highlighted. Every chat is saved and readable in **Helper chats** (young
+  people are told leaders can read them).
 - **Privacy**: requests only go to OpenRouter providers that don't collect or
   train on prompts. Names are never sent, only their section and the page
   they're on.
@@ -116,7 +116,7 @@ two models, each doing what it's good at:
   of a penny, and fixed thresholds in `src/lib/ai/reviewer.ts` turn those into
   decisions.
 - **GLM 5.3 Flash** (the helper's model) reads uploaded screenshots so Jev can
-  judge them, and writes the kind, specific note the young person gets. Jev
+  judge them (the words on each slide of a PowerPoint are read directly), and writes the kind, specific note the young person gets. Jev
   checks that note before it's sent.
 
 What it does:
@@ -165,7 +165,14 @@ by their `data-tour` tags; the places and tours are listed in
 - **Review**: every answer and upload, with "what to look for" notes. Approve
   or ask for changes with a message the young person sees (they're notified
   straight away). With the AI leader on, each submission shows what it
-  decided and why.
+  decided and why. PowerPoint files (.pptx) open in a **slide viewer** in the
+  browser ("View slides"), so you don't need PowerPoint; PDFs, pictures and
+  videos open in the browser too.
+- **Helper chats**: every conversation anyone has had with the AI helper
+  (young people and leaders), newest first, with the full transcript, the
+  page or task it was asked on, and anything flagged. Filter by young people,
+  leaders or flagged, search questions, answers and names, or download them
+  all as a CSV. Each young person's page links to just their chats.
 - **Young people**: search and filter by section, add one person or paste a
   whole list, edit details and remove people. Each person's page shows every
   badge and task: tick off work done on paper, reopen tasks, sign off badges

@@ -127,7 +127,14 @@ export default async function ScoutDetailPage({ params }: PageProps<"/admin/scou
       </div>
 
       <Card id="helper" className="scroll-mt-32 p-5 sm:p-6" data-tour="person-chats">
-        <h2 className="text-lg font-extrabold">Helper chats</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-extrabold">Helper chats</h2>
+          {chats.length > 0 && (
+            <Link href={`/admin/chats?scout=${scout.id}`} className="text-sm font-bold text-brand-600 hover:underline">
+              Open as conversations →
+            </Link>
+          )}
+        </div>
         <p className="mb-4 text-sm text-muted">What {scout.firstName} has asked the AI helper (most recent last). Flagged messages also put their hand up on the dashboard.</p>
         {chats.length === 0 ? (
           <p className="text-sm text-muted">No helper chats yet.</p>

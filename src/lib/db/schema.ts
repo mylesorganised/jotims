@@ -107,12 +107,18 @@ export const leaders = pgTable(
   (t) => [uniqueIndex("leaders_username_idx").on(t.username)],
 );
 
-/** Scouts' conversations with the AI helper, kept so leaders can read them. */
+/** Conversations with the AI helper (young people's and leaders'), kept so leaders can read them. */
 export const helperMessages = pgTable("helper_messages", {
   id: serial("id").primaryKey(),
-  scoutId: text("scout_id")
-    .notNull()
-    .references(() => scouts.id, { onDelete: "cascade" }),
+  /** set for a young person's chat */
+  scoutId: text("scout_id").references(() => scouts.id, { onDelete: "cascade" }),
+  /** set for a leader's chat (kept if the leader is later removed) */
+  leaderId: text("leader_id"),
+  leaderName: text("leader_name"),
+  /** one chat from opening the helper to "start again"; null for chats logged before this existed */
+  conversationId: text("conversation_id"),
+  /** the page they were on */
+  page: text("page"),
   badgeId: text("badge_id"),
   taskId: text("task_id"),
   role: text("role").$type<"user" | "assistant">().notNull(),
@@ -246,6 +252,13 @@ export const bootstrapSql = [
     created_at timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS helper_messages_scout_idx ON helper_messages (scout_id, created_at DESC)`,
+  `ALTER TABLE helper_messages ALTER COLUMN scout_id DROP NOT NULL`,
+  `ALTER TABLE helper_messages ADD COLUMN IF NOT EXISTS leader_id text`,
+  `ALTER TABLE helper_messages ADD COLUMN IF NOT EXISTS leader_name text`,
+  `ALTER TABLE helper_messages ADD COLUMN IF NOT EXISTS conversation_id text`,
+  `ALTER TABLE helper_messages ADD COLUMN IF NOT EXISTS page text`,
+  `CREATE INDEX IF NOT EXISTS helper_messages_conversation_idx ON helper_messages (conversation_id, id)`,
+  `CREATE INDEX IF NOT EXISTS helper_messages_created_idx ON helper_messages (created_at DESC)`,
   `CREATE TABLE IF NOT EXISTS notifications (
     id serial PRIMARY KEY,
     scout_id text NOT NULL REFERENCES scouts(id) ON DELETE CASCADE,
