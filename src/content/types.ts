@@ -93,6 +93,30 @@ export type StepDef = {
   stuck?: { problem: string; fix: string }[];
   /** they can explain this to the AI leader in a chat instead of a real leader */
   explain?: ExplainDef;
+  /** a pretend email inbox or phone, where they send a message to the AI leader */
+  simulate?: SimulateDef;
+};
+
+/**
+ * Send a message to "Akela" (the AI leader) in a pretend email inbox or phone.
+ * Once a message does everything in `points`, the answers in `fills` are filled
+ * in from it, and when every simulated step is done the task is sent and the
+ * AI leader ticks it off.
+ */
+export type SimulateDef = {
+  /** email inbox, phone texting, or let them choose */
+  kind: "email" | "sms" | "either";
+  /** what their message has to do (used to judge it and to explain what's missing) */
+  points: string[];
+  /** answers to fill in from what they sent (field ids) */
+  fills?: {
+    subject?: string;
+    body?: string;
+    /** a choice field recording which they used, and its option for each */
+    how?: { field: string; email: string; sms: string };
+  };
+  /** a texting test: at least this many words, typed at least this fast; pasting is blocked */
+  speedTest?: { minWords: number; minWpm: number };
 };
 
 /** An "explain it to a leader" step that can be done as a chat with the AI leader. */

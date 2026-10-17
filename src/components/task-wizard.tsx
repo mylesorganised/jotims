@@ -37,6 +37,7 @@ import type { AnswerValue, Answers, TaskStatus } from "@/lib/db/schema";
 import { Field } from "./fields";
 import { useHelperContext } from "./helper/helper";
 import { ExplainChat } from "./explain-chat";
+import { MessageSim } from "./message-sim";
 import { RichText } from "./rich-text";
 import { Tool } from "./tools";
 import { buttonClass, Callout, cn } from "./ui";
@@ -266,6 +267,20 @@ export function TaskWizard({
                       taskId={task.id}
                       step={step}
                       topic={current.explain.topic}
+                      locked={locked}
+                      preview={preview}
+                    />
+                  ) : current.simulate ? (
+                    <MessageSim
+                      def={current.simulate}
+                      badgeId={badge.id}
+                      taskId={task.id}
+                      step={step}
+                      answers={answers}
+                      onFill={(values) => {
+                        for (const [id, value] of Object.entries(values)) update(id, value);
+                      }}
+                      firstName={scout.firstName}
                       locked={locked}
                       preview={preview}
                     />

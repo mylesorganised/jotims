@@ -112,7 +112,19 @@ const beaverTasks: TaskDef[] = [
       },
       {
         title: "Send it!",
-        body: ["Press send, then ask the leader to check they got it."],
+        simulate: {
+          kind: "either",
+          points: [
+            "Says hello (or another greeting)",
+            "Says who they are (their first name is fine)",
+            "Says one thing they've enjoyed at JOTA-JOTI or Beavers",
+          ],
+          fills: { body: "message", how: { field: "how", email: "An email", sms: "A text message" } },
+        },
+        body: [
+          "Send your message to **Akela**, our AI leader, with the pretend email or phone below. Akela will write back!",
+          "Sent a real one to a leader instead? Ask them to check they got it, and add a photo if you like.",
+        ],
         fields: [
           { kind: "upload", id: "proof", label: "Got a screenshot or photo? Add it here (optional)", accept: "image/*" },
         ],
@@ -348,8 +360,18 @@ const cubTasks: TaskDef[] = [
     steps: [
       {
         title: "Send an email",
-        body: ["Ask a leader which address to send to. A good email has:"],
+        body: ["Send an email to **Akela**, our AI leader, in the pretend inbox below. A good email has:"],
         bullets: ["A subject line", "A greeting (Hi Akela!)", "Your message", "Your name at the end"],
+        simulate: {
+          kind: "email",
+          points: [
+            "Has a subject line that says what the email is about",
+            "Starts with a greeting, like Hi Akela",
+            "Has a clear, friendly message",
+            "Ends with their name",
+          ],
+          fills: { subject: "email_subject", body: "email" },
+        },
         fields: [
           { kind: "text", id: "email_subject", label: "Email subject", required: true },
           { kind: "text", id: "email", label: "What did your email say?", long: true, required: true },
@@ -357,7 +379,12 @@ const cubTasks: TaskDef[] = [
       },
       {
         title: "Send a text",
-        body: ["Now send a text message to a leader. Texts are shorter, so keep it clear and friendly."],
+        body: ["Now send a text message to **Akela** on the pretend phone below. Texts are shorter, so keep it clear and friendly."],
+        simulate: {
+          kind: "sms",
+          points: ["Is a clear, friendly text message that makes sense", "Says who it's from or what it's about"],
+          fills: { body: "text" },
+        },
         fields: [{ kind: "text", id: "text", label: "What did your text say?", required: true }],
       },
       {
@@ -966,8 +993,16 @@ const scoutTasks: TaskDef[] = [
       },
       {
         title: "Text it",
-        body: ["Show a leader you can text the whole message quickly and accurately. The leader must watch you type it."],
+        body: [
+          "Show you can text the whole message quickly and accurately. Type it on the pretend phone below: it times you, and Akela (our AI leader) checks it. You need **25 words or more**.",
+          "Or a real leader can watch you type it on a phone.",
+        ],
         withLeader: true,
+        simulate: {
+          kind: "sms",
+          points: ["Is written clearly and accurately: it makes sense, words are spelled correctly, and it isn't mostly abbreviations"],
+          speedTest: { minWords: 25, minWpm: 12 },
+        },
       },
     ],
   },

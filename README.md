@@ -60,6 +60,17 @@ leader can tick it off or sign it off on their page, which unlocks the next one.
   on the submission. The ideas each step needs are in `explain: {...}` on the
   step in `src/content/`.
 
+- **Pretend email and phone**: the "send a leader an email or text" tasks
+  (Beavers and Cubs Communicator) and the Scouts texting test have a pretend
+  inbox (PG Mail) and phone built into the step. Young people send their
+  message to **Akela, the AI leader**, who writes back. Jev checks the message
+  does what the task asks (e.g. a subject line, a greeting, their name) and is
+  sensible to send; if something's missing Akela explains it kindly and they
+  try again. The texting test times them and counts words (25+), with pasting
+  switched off. Once it's right, the answers fill themselves in and, when
+  every message step is done, the task is sent and the AI leader ticks it
+  off. Set per step with `simulate: {...}` in `src/content/`.
+
 ## JOTI chat guide (`/chat`)
 
 A "JOTI chat" page (in the menu, and on the login page) walks young people

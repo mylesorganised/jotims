@@ -1,4 +1,4 @@
-import { Bot, CheckCircle2, Hand, MessagesSquare } from "lucide-react";
+import { Bot, CheckCircle2, Hand, Mail, MessageCircle, MessagesSquare } from "lucide-react";
 import { Card, cn } from "@/components/ui";
 import type { schema } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
@@ -14,18 +14,24 @@ const STATUS = {
 /** The young person's "explain it to a leader" chat with the AI leader. */
 export function ExplanationCard({ row, stepTitle, firstName }: { row: Row; stepTitle: string; firstName: string }) {
   const s = STATUS[row.status];
+  const kind = row.kind;
+  const Icon = kind === "email" ? Mail : kind === "sms" ? MessageCircle : MessagesSquare;
+  const title = kind === "email" ? "Email to the AI leader" : kind === "sms" ? "Texts with the AI leader" : "Explained to the AI leader";
+  const label = row.status === "passed" && kind !== "explain" ? "Received ✅" : s.label;
   return (
     <Card className="space-y-3 p-5" data-tour="review-explain">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="flex items-center gap-2 font-extrabold">
-          <MessagesSquare className="size-5 text-brand-500" /> Explained to the AI leader
+          <Icon className="size-5 text-brand-500" /> {title}
         </h2>
         <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold", s.tone)}>
-          <s.icon className="size-3.5" /> {s.label}
+          <s.icon className="size-3.5" /> {label}
         </span>
       </div>
       <p className="text-sm text-muted">
-        {stepTitle} · {formatDateTime(row.updatedAt)} · copy and paste was switched off
+        {stepTitle} · {formatDateTime(row.updatedAt)}
+        {kind === "explain" && " · copy and paste was switched off"}
+        {row.scores.wpm ? ` · ${row.scores.words} words in ${row.scores.seconds}s (${row.scores.wpm} words a minute, pasting switched off)` : ""}
       </p>
       <ol className="max-h-96 space-y-2 overflow-y-auto rounded-xl bg-canvas p-3 ring-1 ring-line">
         {row.messages.map((m, i) => (
@@ -39,6 +45,7 @@ export function ExplanationCard({ row, stepTitle, firstName }: { row: Row; stepT
               <span className={cn("mb-0.5 flex items-center gap-1 text-[11px] font-bold", m.role === "scout" ? "text-white/80" : "text-brand-600")}>
                 {m.role === "ai" && <Bot className="size-3" />} {m.role === "ai" ? "AI leader" : firstName}
               </span>
+              {m.subject && <span className="mb-1 block font-bold">Subject: {m.subject}</span>}
               {m.text}
             </div>
           </li>

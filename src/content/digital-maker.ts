@@ -923,34 +923,6 @@ const stage4: TaskDef[] = [
       },
     ],
   },
-  {
-    id: "help-maker",
-    title: "Help someone with their Digital Maker badge",
-    summary: "Help a Beaver, Cub or Scout work towards any Digital Maker stage.",
-    emoji: "🤝",
-    minutes: 60,
-    review: "leader",
-    leaderCheck: "The Scout helped another young person work towards a Digital Maker Staged Activity Badge.",
-    steps: [
-      {
-        title: "Find someone to help",
-        body: ["Help someone in your section, or a Beaver or Cub, with any stage of their Digital Maker badge. They can follow it in this app too!"],
-        tip: "Good helpers don't take over. Ask questions like \"What do you think happens if…?\" and let them press the buttons.",
-        fields: [
-          { kind: "text", id: "who", label: "Who did you help? (first name and section)", required: true },
-          { kind: "text", id: "what", label: "Which stage and task were they working on?", required: true },
-        ],
-      },
-      {
-        title: "Help them",
-        withLeader: true,
-        fields: [
-          { kind: "text", id: "how", label: "How did you help?", long: true, required: true },
-          { kind: "text", id: "learned", label: "What did you learn about helping someone else learn?", long: true, required: true },
-        ],
-      },
-    ],
-  },
 ];
 
 export const digitalMaker4: BadgeDef = {
@@ -961,33 +933,11 @@ export const digitalMaker4: BadgeDef = {
   sections: ["scouts"],
   recommendedFor: ["scouts"],
   tagline: "Combine your skills to solve a Scouting challenge.",
-  intro: `Make something that could be used in a Scouting activity, then show it at an event or help someone else. ${laptopOnly}`,
+  intro: `Make something that could be used in a Scouting activity, then show it at a digital making event. ${laptopOnly}`,
   tasks: stage4,
   parts: [
     { kind: "task", taskId: "scout-gadget" },
-    {
-      kind: "choice",
-      id: "share",
-      title: "Share your skills",
-      description: "Pick one of these two.",
-      pick: 1,
-      options: [
-        {
-          id: "event",
-          title: "A digital making event",
-          emoji: "🏟️",
-          summary: "Show your project at Coolest Projects, a Raspberry Jam, a Code Club…",
-          taskIds: ["making-event"],
-        },
-        {
-          id: "help",
-          title: "Help someone else",
-          emoji: "🤝",
-          summary: "Help a Beaver, Cub or Scout with their Digital Maker badge.",
-          taskIds: ["help-maker"],
-        },
-      ],
-    },
+    { kind: "task", taskId: "making-event" },
   ],
 };
 

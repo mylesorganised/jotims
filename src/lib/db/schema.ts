@@ -159,7 +159,7 @@ export const aiReviews = pgTable("ai_reviews", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export type ExplainMessage = { role: "ai" | "scout"; text: string; at: string };
+export type ExplainMessage = { role: "ai" | "scout"; text: string; at: string; subject?: string; via?: "email" | "sms" };
 
 /** "Explain it to a leader" done as a chat with the AI leader (one per young person per step). */
 export const explanations = pgTable(
@@ -172,6 +172,8 @@ export const explanations = pgTable(
     badgeId: text("badge_id").notNull(),
     taskId: text("task_id").notNull(),
     step: integer("step").notNull(),
+    /** explain = "explain it to a leader" chat; email / sms = the pretend inbox or phone */
+    kind: text("kind").$type<"explain" | "email" | "sms">().notNull().default("explain"),
     /** chatting | passed | referred (passed to a real leader) */
     status: text("status").$type<"chatting" | "passed" | "referred">().notNull().default("chatting"),
     messages: jsonb("messages").$type<ExplainMessage[]>().notNull().default([]),
@@ -318,6 +320,7 @@ export const bootstrapSql = [
     updated_at timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS explanations_scout_step_idx ON explanations (scout_id, badge_id, task_id, step)`,
+  `ALTER TABLE explanations ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'explain'`,
   `CREATE TABLE IF NOT EXISTS settings (
     key text PRIMARY KEY,
     value jsonb NOT NULL

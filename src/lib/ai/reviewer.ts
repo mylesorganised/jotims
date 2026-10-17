@@ -216,10 +216,14 @@ export async function reviewSubmission(progressId: string, { auto }: { auto: boo
       getExplanationsForTask(scout.id, badge.id, task.id),
     ]);
     const descriptions = await describeUploads(task, uploads);
-    // Steps done "with a leader" that they explained to the AI leader instead, and passed.
-    const leaderSteps = task.steps.map((st, i) => ({ st, i })).filter(({ st }) => st.withLeader);
+    // Steps they did with the AI leader instead (explaining it, or sending a pretend
+    // email / text). If all of those passed and they cover every "with a leader"
+    // step, the AI leader can confirm the task without a person.
+    const aiSteps = task.steps.map((st, i) => ({ st, i })).filter(({ st }) => st.explain || st.simulate);
     const explainedAll =
-      leaderSteps.length > 0 && leaderSteps.every(({ st, i }) => st.explain && explanations.get(i)?.status === "passed");
+      aiSteps.length > 0 &&
+      aiSteps.every(({ i }) => explanations.get(i)?.status === "passed") &&
+      task.steps.every((st) => !st.withLeader || st.explain || st.simulate);
     const built = submissionState({
       task,
       answers: progress.answers,
@@ -236,10 +240,17 @@ export async function reviewSubmission(progressId: string, { auto }: { auto: boo
         ...built.state.submission,
         ...(explanations.size
           ? {
-              explained_to_ai_leader: Object.fromEntries(
+              done_with_the_ai_leader: Object.fromEntries(
                 [...explanations.values()].map((e) => [
                   task.steps[e.step]?.title ?? `step ${e.step + 1}`,
-                  { result: e.status, their_words: e.messages.filter((m) => m.role === "scout").map((m) => m.text) },
+                  {
+                    how: e.kind === "email" ? "sent an email" : e.kind === "sms" ? "sent text messages" : "explained it in a chat",
+                    result: e.status,
+                    their_messages: e.messages
+                      .filter((m) => m.role === "scout")
+                      .map((m) => (m.subject ? `Subject: ${m.subject}\n${m.text}` : m.text)),
+                    ...(e.scores.wpm ? { typing: { words: e.scores.words, seconds: e.scores.seconds, words_per_minute: e.scores.wpm } } : {}),
+                  },
                 ]),
               ),
             }
@@ -305,7 +316,7 @@ export async function reviewSubmission(progressId: string, { auto }: { auto: boo
       reason = `Part of this happens with a leader, and the written part is borderline (${weak.length ? `check: ${weak.join("; ")}` : `meets the requirement ${pct(s.meets)}`}).`;
     } else if (clearlyDone) {
       decision = "approved";
-      reason = explainedAll ? "The answers meet the requirement, and they explained it to the AI leader." : "The answers meet the requirement.";
+      reason = explainedAll ? "The answers meet the requirement, and they did the leader part with the AI leader." : "The answers meet the requirement.";
     } else {
       decision = "unsure";
       const doubts = [
