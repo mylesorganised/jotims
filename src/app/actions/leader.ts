@@ -400,6 +400,7 @@ export async function saveSettingsAction(_prev: FormState, formData: FormData): 
       ? {
           aiReview: formData.get("aiReview") === "on",
           aiSignOff: formData.get("aiSignOff") === "on",
+          aiCheckSelf: formData.get("aiCheckSelf") === "on",
           aiApproveInPerson: formData.get("aiApproveInPerson") === "on",
         }
       : {}),

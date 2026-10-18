@@ -32,12 +32,14 @@ import {
   type RecordedUpload,
 } from "@/app/actions/scout";
 import type { StepDef, StepImage, TaskDef } from "@/content/types";
-import { fieldComplete, missingFields, type Missing } from "@/lib/answers";
+import { asText, fieldComplete, fieldNeeded, missingFields, type Missing } from "@/lib/answers";
 import type { AnswerValue, Answers, TaskStatus } from "@/lib/db/schema";
+import { machineApplies } from "@/lib/morse-machine";
 import { Field } from "./fields";
 import { useHelperContext } from "./helper/helper";
 import { ExplainChat } from "./explain-chat";
 import { MessageSim } from "./message-sim";
+import { MorseMachine } from "./morse-machine";
 import { RichText } from "./rich-text";
 import { Tool } from "./tools";
 import { buttonClass, Callout, cn } from "./ui";
@@ -94,6 +96,10 @@ export function TaskWizard({
   const [save, setSave] = useState<SaveState>("idle");
   const [zoom, setZoom] = useState<StepImage | null>(null);
   const [celebrate, setCelebrate] = useState(false);
+  /** whether the AI leader is on for the pretend inbox / phone (they report it once they load) */
+  const [simOn, setSimOn] = useState(false);
+  /** steps where they did it for real instead of in the pretend inbox / phone / Morse machine */
+  const [manual, setManual] = useState<Record<number, boolean>>({});
 
   const answersRef = useRef(answers);
   const maxStep = useRef(record?.stepReached ?? 0);
@@ -165,7 +171,7 @@ export function TaskWizard({
   const stepDone = (s: StepDef) => {
     const fields = s.fields ?? [];
     if (!fields.some((f) => f.required)) return false;
-    return fields.every((f) => fieldComplete(f, answers[f.id], counts[f.id] ?? 0));
+    return fields.every((f) => !fieldNeeded(s, f, answers) || fieldComplete(f, answers[f.id], counts[f.id] ?? 0));
   };
 
   // When a walkthrough asks for part of a task, go to a step that has it.
@@ -194,6 +200,33 @@ export function TaskWizard({
   }, [task.steps]);
 
   const current = task.steps[step];
+  // Answer boxes the pretend inbox / phone fills in (and proof uploads) are only
+  // shown if they sent a real message instead, or the AI leader isn't on.
+  const simFields = current ? simFieldIds(current) : [];
+  const hidesFields = (i: number) => simOn && !manual[i];
+  const machine = current?.morseMachine;
+  const usingMachine = Boolean(machine && machineApplies(machine, answers) && !manual[step]);
+  // The Morse machine's box is only ever filled in by the machine; the boxes for
+  // sending it to a real person only show if they did that instead.
+  const hidden = [
+    ...(hidesFields(step) ? simFields : []),
+    ...(machine ? [machine.fills, ...(usingMachine ? (machine.manualOnly ?? []) : [])] : []),
+  ];
+  const shownStep = current
+    ? {
+        ...current,
+        fields: current.fields?.filter((f) => !hidden.includes(f.id)),
+        ...(usingMachine ? { withLeader: false, tools: undefined } : {}),
+      }
+    : null;
+  // On the finish screen, boxes hidden behind the pretend inbox / phone / Morse machine become one "send it" item.
+  const shownMissing = missing.flatMap((m, i): Missing[] => {
+    const s = task.steps[m.stepIndex];
+    if (s?.morseMachine?.fills === m.fieldId) return [{ ...m, label: "Send your message on the Morse machine" }];
+    if (!s?.simulate || !hidesFields(m.stepIndex) || !simFieldIds(s).includes(m.fieldId)) return [m];
+    const first = missing.findIndex((o) => o.stepIndex === m.stepIndex && simFieldIds(s).includes(o.fieldId));
+    return first === i ? [{ ...m, label: SIM_TODO[s.simulate.kind] }] : [];
+  });
   useHelperContext({
     badgeId: badge.id,
     taskId: task.id,
@@ -252,10 +285,10 @@ export function TaskWizard({
         <StepNav steps={task.steps} step={step} go={go} stepDone={stepDone} finishLabel={task.review === "leader" ? "Send to a leader" : "Finish"} finished={locked} />
 
         <div className="min-w-0 space-y-4">
-          {current ? (
+          {current && shownStep ? (
             <section key={step} className="animate-fade-up rounded-3xl bg-white p-5 shadow-card ring-1 ring-line sm:p-7" data-tour="step-content">
               <StepView
-                step={current}
+                step={shownStep}
                 index={step}
                 total={task.steps.length}
                 storageKey={`joti:${scout.id}:${badge.id}:${task.id}`}
@@ -271,6 +304,7 @@ export function TaskWizard({
                       preview={preview}
                     />
                   ) : current.simulate ? (
+                    <div className="space-y-2">
                     <MessageSim
                       def={current.simulate}
                       badgeId={badge.id}
@@ -285,7 +319,45 @@ export function TaskWizard({
                       preview={preview}
                       uploadConfig={uploadConfig}
                       onUploaded={(fieldId, upload) => setUploadsFor(fieldId, [...uploadsFor(fieldId), upload])}
+                      onAvailable={setSimOn}
                     />
+                    {simFields.length > 0 && simOn && !locked && (
+                      <button
+                        type="button"
+                        onClick={() => setManual((m) => ({ ...m, [step]: !m[step] }))}
+                        className="text-sm font-bold text-brand-700 hover:underline"
+                      >
+                        {manual[step]
+                          ? "Hide this: I'm using the pretend one"
+                          : current.simulate.kind === "video"
+                            ? "Recorded it on a real phone instead? Fill it in here"
+                            : "Sent a real one instead? Type what it said"}
+                      </button>
+                    )}
+                    </div>
+                  ) : machine && machineApplies(machine, answers) ? (
+                    <div className="space-y-2">
+                      {usingMachine && (
+                        <MorseMachine
+                          def={machine}
+                          planned={machine.message === "first-name" ? scout.firstName : asText(answers[machine.message.field])}
+                          plannedStep={plannedStepOf(task, machine.message)}
+                          go={go}
+                          value={asText(answers[machine.fills])}
+                          onFill={(summary) => update(machine.fills, summary)}
+                          locked={locked}
+                        />
+                      )}
+                      {Boolean(machine.manualOnly?.length) && !locked && (
+                        <button
+                          type="button"
+                          onClick={() => setManual((m) => ({ ...m, [step]: !m[step] }))}
+                          className="text-sm font-bold text-brand-700 hover:underline"
+                        >
+                          {manual[step] ? "Use the Morse machine instead" : "Sent it to a real person instead? Fill it in here"}
+                        </button>
+                      )}
+                    </div>
                   ) : null
                 }
                 renderField={(field) => (
@@ -308,7 +380,7 @@ export function TaskWizard({
               key="finish"
               status={status}
               review={task.review}
-              missing={missing}
+              missing={shownMissing}
               go={go}
               badgeId={badge.id}
               taskId={task.id}
@@ -750,6 +822,29 @@ function HelpButton({ badgeId, taskId, requested }: { badgeId: string; taskId: s
         </div>
       )}
     </div>
+  );
+}
+
+const SIM_TODO: Record<NonNullable<StepDef["simulate"]>["kind"], string> = {
+  email: "Send your email in PG Mail",
+  sms: "Send your text on the pretend phone",
+  either: "Send your message to the AI leader",
+  video: "Send your video message",
+};
+
+/** Where they write the message the Morse machine shows (null for their name). */
+function plannedStepOf(task: TaskDef, message: NonNullable<StepDef["morseMachine"]>["message"]) {
+  if (message === "first-name") return null;
+  const i = task.steps.findIndex((s) => s.fields?.some((f) => f.id === message.field));
+  return i === -1 ? null : i;
+}
+
+/** Answer boxes on a step that the pretend inbox / phone fills in, plus proof only needed for a real one. */
+function simFieldIds(s: StepDef) {
+  const sim = s.simulate;
+  if (!sim) return [];
+  return [sim.fills?.subject, sim.fills?.body, sim.fills?.how?.field, ...(sim.manualOnly ?? [])].filter(
+    (id): id is string => Boolean(id) && Boolean(s.fields?.some((f) => f.id === id)),
   );
 }
 

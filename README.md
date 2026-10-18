@@ -69,7 +69,25 @@ leader can tick it off or sign it off on their page, which unlocks the next one.
   try again. The texting test times them and counts words (25+), with pasting
   switched off. Once it's right, the answers fill themselves in and, when
   every message step is done, the task is sent and the AI leader ticks it
-  off. Set per step with `simulate: {...}` in `src/content/`.
+  off. The answer boxes it fills in (and any "proof" photo, listed in
+  `manualOnly`) are hidden while it's in use; "Sent a real one instead? Type
+  what it said" shows them for anyone who messaged a real leader. Set per step
+  with `simulate: {...}` in `src/content/`.
+- **Morse machine**: the Morse "send it" steps (Beavers "Spell your name" and
+  "Send and write a Morse message", and Scouts "5 words a minute" when they
+  pick Morse) have a pretend Morse machine. Their planned message (or name) is
+  on screen in big letters with the dots and dashes under each one (they can
+  hide those for a challenge). They press and hold the key (mouse, finger or
+  space bar) and hear the tone and see the lamp as they go, while a paper tape
+  shows what the machine is reading. Slow / Medium / Fast change how long it
+  waits, and it gets used to how each person taps. When they've finished it
+  reads the message back (out loud too), marks every letter, explains the
+  wrong ones ("A is dot dash, but it heard dot dot dash") and gives tips
+  (hold dashes longer, pause between letters). 80% of letters right (and, for
+  Scouts, about 5 words a minute) fills in "What the Morse machine heard" for
+  leaders and counts as the "with a leader" part; after three tries they can
+  keep their best one. No AI is involved: it's checked in the browser
+  (`src/lib/morse-machine.ts`). Set per step with `morseMachine: {...}`.
 - **Video message phone**: the Scouts video message task has a pretend phone
   that records a video with the computer's camera and microphone (up to a
   minute, with playback and retake), then sends it to Akela like a video
@@ -171,6 +189,9 @@ What it does:
   (a phone call, a chat, signing) or received it (an email or video) can
   confirm it. For those it only checks the written part, unless you switch on
   "Also approve tasks a leader would normally see or receive" in Settings.
+- **Self-check tasks**: as soon as one is finished, it checks it was done
+  properly and, if it clearly wasn't, sends it back with feedback (switch off
+  with "Check self-check tasks as they're finished" in Settings).
 - **Badge sign-off**: when every task for a badge is done, it checks the
   self-check tasks weren't rushed and signs the badge off. If one clearly
   wasn't done, it reopens it with feedback; if it's unsure, it leaves the

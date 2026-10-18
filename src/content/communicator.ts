@@ -8,6 +8,16 @@ const gotItRight = {
   options: ["Yes, first time!", "Not at first, but we tried again", "Not yet"],
 };
 
+/** Filled in by the Morse machine (never shown to the young person), for leaders to read. */
+const morseMachineAnswer = {
+  kind: "text" as const,
+  id: "machine",
+  label: "What the Morse machine heard",
+  long: true,
+  mono: true,
+  required: true,
+};
+
 // ---------------------------------------------------------------- Beavers
 
 const beaverTasks: TaskDef[] = [
@@ -120,6 +130,7 @@ const beaverTasks: TaskDef[] = [
             "Says one thing they've enjoyed at JOTA-JOTI or Beavers",
           ],
           fills: { body: "message", how: { field: "how", email: "An email", sms: "A text message" } },
+          manualOnly: ["proof"],
         },
         body: [
           "Send your message to **Akela**, our AI leader, with the pretend email or phone below. Akela will write back!",
@@ -168,12 +179,14 @@ const beaverTasks: TaskDef[] = [
         ],
       },
       {
-        title: "Send it to a friend",
+        title: "Send it on the Morse machine",
         body: [
-          "Send your name to another Beaver or a leader. Tap it on the table (short tap = dot, long tap = dash), beep it, or flash a torch.",
-          "Did they work out your name?",
+          "Now send your name on the **Morse machine** below. Press and hold the big key: a **quick tap** is a dot and a **longer press** is a dash.",
+          "When you've finished, the machine reads it back to you. Did it get your name?",
         ],
+        morseMachine: { message: "first-name", fills: "machine", speed: "slow", manualOnly: ["got_it", "received"] },
         fields: [
+          morseMachineAnswer,
           gotItRight,
           {
             kind: "text",
@@ -191,7 +204,8 @@ const beaverTasks: TaskDef[] = [
     emoji: "📡",
     minutes: 20,
     review: "leader",
-    leaderCheck: "The Beaver sent a short Morse message to someone and decoded one back.",
+    leaderCheck:
+      "The Beaver cracked the secret message and sent their own short Morse message, on the Morse machine (which checks it) or to a person who understood it.",
     steps: [
       {
         title: "Crack the secret message",
@@ -220,13 +234,14 @@ const beaverTasks: TaskDef[] = [
         ],
       },
       {
-        title: "Send it",
+        title: "Send it on the Morse machine",
         body: [
-          "Send your message to another Beaver or a leader by tapping, beeping or flashing a torch. Did they get it right?",
-          "Now they send one to you. What did it say?",
+          "Now send your message on the **Morse machine** below. Your message is on the screen to help you.",
+          "Press and hold the big key: a **quick tap** is a dot and a **longer press** is a dash. When you've sent it all, press **I've finished** and the machine will read it back to you!",
         ],
         withLeader: true,
-        fields: [gotItRight, { kind: "text", id: "received", label: "What message did they send you?" }],
+        morseMachine: { message: { field: "my_message" }, fills: "machine", speed: "slow", manualOnly: ["got_it", "received"] },
+        fields: [morseMachineAnswer, gotItRight, { kind: "text", id: "received", label: "What message did they send you?" }],
       },
     ],
   },
@@ -384,12 +399,12 @@ const cubTasks: TaskDef[] = [
           kind: "sms",
           points: ["Is a clear, friendly text message that makes sense", "Says who it's from or what it's about"],
           fills: { body: "text" },
+          manualOnly: ["proof"],
         },
-        fields: [{ kind: "text", id: "text", label: "What did your text say?", required: true }],
-      },
-      {
-        title: "Proof (optional)",
-        fields: [{ kind: "upload", id: "proof", label: "Add screenshots if you have them", accept: "image/*", multiple: true }],
+        fields: [
+          { kind: "text", id: "text", label: "What did your text say?", required: true },
+          { kind: "upload", id: "proof", label: "Screenshots of your real email and text (optional)", accept: "image/*", multiple: true },
+        ],
       },
     ],
   },
@@ -804,7 +819,8 @@ const scoutTasks: TaskDef[] = [
     emoji: "🔦",
     minutes: 30,
     review: "leader",
-    leaderCheck: "The Scout sent a message of 10+ words in Morse or semaphore at around 5 words per minute, and it was understood.",
+    leaderCheck:
+      "The Scout sent a message of 10+ words at around 5 words per minute and it was understood: in Morse on the Morse machine (which checks it and times it) or to a person, or in semaphore to a person.",
     steps: [
       {
         title: "Two old-school codes",
@@ -834,12 +850,22 @@ const scoutTasks: TaskDef[] = [
       {
         title: "Send it",
         body: [
-          "Send it to another Scout or leader and get them to translate it. You may need to send it more than once.",
+          "Using **Morse code**? Send it on the **Morse machine** below. It times you, reads it back and checks every letter.",
+          "Using **semaphore**? Send it to another Scout or leader and get them to translate it. You may need to send it more than once.",
           "5 words per minute means a 10-word message takes about **2 minutes**.",
         ],
         tools: ["timer-2"],
         withLeader: true,
+        morseMachine: {
+          message: { field: "message" },
+          when: { field: "method", equals: "Morse code" },
+          fills: "machine",
+          speed: "medium",
+          minWpm: 5,
+          manualOnly: ["got_it", "time"],
+        },
         fields: [
+          morseMachineAnswer,
           gotItRight,
           { kind: "text", id: "time", label: "How long did it take?", placeholder: "e.g. 1 min 50 s" },
         ],

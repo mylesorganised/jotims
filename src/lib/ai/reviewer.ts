@@ -1,8 +1,10 @@
 import "server-only";
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { badgeName, getBadge, getTask, type BadgeDef, type TaskDef } from "@/content";
-import { ageOn, getProgressById, getScout, getScoutOverview, getTaskUploads, logActivity, type ScoutRow } from "@/lib/data";
+import { asText } from "@/lib/answers";
+import { ageOn, getProgressById, getScout, getScoutOverview, getTaskRecord, getTaskUploads, logActivity, type ScoutRow } from "@/lib/data";
 import { getDb, schema } from "@/lib/db";
+import { machineApplies } from "@/lib/morse-machine";
 import { chatComplete, helperEnabled } from "@/lib/helper/openrouter";
 import { notify } from "@/lib/notify";
 import { badgeProgress } from "@/lib/progress";
@@ -217,15 +219,20 @@ export async function reviewSubmission(progressId: string, { auto }: { auto: boo
     ]);
     const descriptions = await describeUploads(task, uploads);
     // Steps they did with the AI leader instead (explaining it, or sending a pretend
-    // email / text). If all of those passed and they cover every "with a leader"
-    // step, the AI leader can confirm the task without a person.
+    // email / text), or sent on the Morse machine (which checks it itself). If all
+    // of those were done that way and they cover every "with a leader" step, the
+    // AI leader can confirm the task without a person.
     // (Video messages don't count: the AI never watches them, so a leader does.)
-    const byAi = (st: TaskDef["steps"][number]) => Boolean(st.explain || (st.simulate && st.simulate.kind !== "video"));
+    const byAi = (st: TaskDef["steps"][number]) => Boolean(st.explain || (st.simulate && st.simulate.kind !== "video") || st.morseMachine);
+    const doneByAi = (st: TaskDef["steps"][number], i: number) =>
+      st.morseMachine
+        ? machineApplies(st.morseMachine, progress.answers) && asText(progress.answers[st.morseMachine.fills]).trim().length > 0
+        : explanations.get(i)?.status === "passed";
     const aiSteps = task.steps.map((st, i) => ({ st, i })).filter(({ st }) => byAi(st));
     const explainedAll =
       aiSteps.length > 0 &&
-      aiSteps.every(({ i }) => explanations.get(i)?.status === "passed") &&
-      task.steps.every((st) => !st.withLeader || byAi(st));
+      aiSteps.every(({ st, i }) => doneByAi(st, i)) &&
+      task.steps.every((st, i) => !st.withLeader || (byAi(st) && doneByAi(st, i)));
     const built = submissionState({
       task,
       answers: progress.answers,
@@ -387,6 +394,129 @@ export async function reviewSubmission(progressId: string, { auto }: { auto: boo
       .values({ progressId, scoutId: scout.id, decision: "error", reason })
       .catch(() => {});
     return { decision: "error", reason };
+  }
+}
+
+/**
+ * A self-check task has just been finished. Check it was done properly: if it
+ * clearly wasn't, send it back with kind feedback; otherwise mark it as
+ * checked (so the badge sign-off doesn't check it again). Returns true if it
+ * was sent back.
+ */
+export async function checkSelfTask(scoutId: string, badgeId: string, taskId: string): Promise<boolean> {
+  if (!jevEnabled()) return false;
+  const settings = await getSettings();
+  if (!settings.aiCheckSelf) return false;
+  const badge = getBadge(badgeId);
+  const task = badge && getTask(badge, taskId);
+  if (!badge || !task || task.review !== "self") return false;
+  const [record, scout] = await Promise.all([getTaskRecord(scoutId, badgeId, taskId), getScout(scoutId)]);
+  if (!record || !scout || record.status !== "done" || record.reviewedBy) return false;
+  const db = await getDb();
+  const age = ageOn(scout.dob);
+  const where = { scoutId, badgeId, taskId };
+
+  try {
+    const uploads = await getTaskUploads(scoutId, badgeId, taskId);
+    const descriptions = await describeUploads(task, uploads, 3);
+    const { state, fields } = submissionState({
+      task,
+      answers: record.answers,
+      uploads,
+      descriptions,
+      firstName: scout.firstName,
+      section: scout.section,
+      age,
+    });
+    // Nothing written or uploaded (e.g. a "do this and tick it" task): nothing to check.
+    if (!Object.keys(state.submission.answers).length) return false;
+
+    const [answers, [sendBacks]] = await Promise.all([
+      jevAsk(state, submissionQuestions(fields)),
+      db
+        .select({ n: count() })
+        .from(schema.aiReviews)
+        .where(and(eq(schema.aiReviews.progressId, record.id), eq(schema.aiReviews.decision, "changes"))),
+    ]);
+    const s = {
+      meets: noulOf(answers.meets),
+      complete: noulOf(answers.complete),
+      effort: scoreOf(answers.effort),
+      personal: noulOf(answers.personal),
+      worry: noulOf(answers.worry),
+      injection: noulOf(answers.injection),
+    };
+    if (Object.values(s).some((v) => !Number.isFinite(v))) throw new Error(`Incomplete answers from Jev: ${JSON.stringify(answers)}`);
+    const fieldScores = Object.fromEntries(fields.filter((f) => f.judged).map((f) => [f.label, noulOf(answers[`f_${f.key}`])]));
+    const weak = Object.entries(fieldScores)
+      .filter(([, p]) => p < POLICY.weakField)
+      .map(([label]) => label);
+    const clearlyNotDone =
+      s.meets <= POLICY.changes.meets || s.complete <= POLICY.changes.complete || s.effort <= POLICY.changes.effort;
+    const personal = s.personal >= POLICY.holdPersonal;
+
+    let decision: Decision;
+    let reason: string;
+    if (s.worry >= POLICY.flagWorry) {
+      decision = "flagged";
+      reason = "Something in the answers suggests they might need a trusted adult to check in with them.";
+    } else if (s.injection >= POLICY.holdInjection) {
+      decision = "held";
+      reason = "The answers include instructions aimed at the AI marker, so a person should look.";
+    } else if ((clearlyNotDone || personal) && sendBacks.n >= POLICY.maxSendBacks) {
+      decision = "held";
+      reason = `Still not quite there after ${sendBacks.n} goes, so it's been left as done for a leader to look at.`;
+    } else if (personal) {
+      decision = "changes";
+      reason = "The answers include personal details (an address, phone number, email or school).";
+    } else if (clearlyNotDone) {
+      decision = "changes";
+      reason = weak.length ? `These need more: ${weak.join("; ")}.` : "The answers don't show the task has been done properly.";
+    } else {
+      decision = "approved";
+      reason = "Checked: the answers show the task was done.";
+    }
+
+    const now = new Date();
+    let feedback: string | null = null;
+    if (decision === "changes") {
+      const fix = personal ? [...weak, "take out personal details like an address, school or phone number"] : weak;
+      feedback = await writeFeedback({ decision: "changes", task, scout, age, state, weak: fix });
+      const updated = await db
+        .update(schema.taskProgress)
+        .set({ status: "changes", reviewedAt: now, reviewedBy: AI_NAME, feedback, updatedAt: now })
+        .where(and(eq(schema.taskProgress.id, record.id), eq(schema.taskProgress.status, "done")))
+        .returning({ id: schema.taskProgress.id });
+      if (!updated.length) return false; // they reopened it themselves in the meantime
+      await logActivity({ ...where, kind: "changes", actor: AI_NAME, message: `asked ${scout.firstName} to add more to "${task.title}"` });
+      await notify(scoutId, {
+        kind: "changes",
+        title: `"${task.title}" needs a little more ✏️`,
+        body: feedback,
+        href: `/badges/${badgeId}/${taskId}`,
+      });
+    } else if (decision === "approved") {
+      await db
+        .update(schema.taskProgress)
+        .set({ reviewedAt: now, reviewedBy: AI_NAME })
+        .where(and(eq(schema.taskProgress.id, record.id), eq(schema.taskProgress.status, "done")));
+    } else if (decision === "flagged") {
+      await flagForLeaders(scout, badgeId, taskId, "🚩 The AI leader noticed something in this task. Please check in with them.");
+    } else {
+      await logActivity({ ...where, kind: "ai-note", actor: AI_NAME, message: `checked "${task.title}": ${reason}` });
+    }
+    const scores: Record<string, number> = { ...s, ...Object.fromEntries(Object.entries(fieldScores).map(([k, v]) => [`field: ${k}`, v])) };
+    const evidence: Record<string, string[]> = {};
+    for (const u of uploads) (evidence[u.fieldId] ??= []).push(descriptions.get(u.id) ?? u.fileName);
+    await db.insert(schema.aiReviews).values({ progressId: record.id, scoutId, decision, reason, scores, evidence, feedback });
+    return decision === "changes";
+  } catch (error) {
+    console.error("AI self-check failed", scoutId, taskId, error);
+    await db
+      .insert(schema.aiReviews)
+      .values({ progressId: record.id, scoutId, decision: "error", reason: error instanceof Error ? error.message.slice(0, 300) : "Unknown error" })
+      .catch(() => {});
+    return false;
   }
 }
 

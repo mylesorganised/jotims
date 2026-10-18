@@ -1,6 +1,7 @@
-import type { AnswerCheck, FieldDef, TaskDef } from "@/content/types";
+import type { AnswerCheck, FieldDef, StepDef, TaskDef } from "@/content/types";
 import type { AnswerValue, Answers } from "@/lib/db/schema";
 import { normalizeMorse, simplify, toMorse } from "./codes";
+import { machineApplies } from "./morse-machine";
 
 export function asText(value: AnswerValue | undefined): string {
   return typeof value === "string" ? value : "";
@@ -57,7 +58,22 @@ export function fieldComplete(field: FieldDef, value: AnswerValue | undefined, u
   }
 }
 
-export type Missing = { stepIndex: number; stepTitle: string; label: string };
+function hasAnswer(value: AnswerValue | undefined) {
+  return Array.isArray(value) ? value.some((v) => (typeof v === "string" ? v.trim() : Boolean(v))) : asText(value).trim().length > 0;
+}
+
+/**
+ * Whether a field counts on the way they did the step. The Morse machine's box
+ * isn't needed if they picked semaphore, or sent it to a real person instead.
+ */
+export function fieldNeeded(step: StepDef, field: FieldDef, answers: Answers): boolean {
+  const machine = step.morseMachine;
+  if (!machine || field.id !== machine.fills) return true;
+  if (!machineApplies(machine, answers)) return false;
+  return !(machine.manualOnly ?? []).some((id) => hasAnswer(answers[id]));
+}
+
+export type Missing = { stepIndex: number; stepTitle: string; label: string; fieldId: string };
 
 export function missingFields(
   task: TaskDef,
@@ -67,8 +83,8 @@ export function missingFields(
   const missing: Missing[] = [];
   task.steps.forEach((step, stepIndex) => {
     for (const field of step.fields ?? []) {
-      if (!fieldComplete(field, answers[field.id], uploadCounts[field.id] ?? 0)) {
-        missing.push({ stepIndex, stepTitle: step.title, label: field.label });
+      if (fieldNeeded(step, field, answers) && !fieldComplete(field, answers[field.id], uploadCounts[field.id] ?? 0)) {
+        missing.push({ stepIndex, stepTitle: step.title, label: field.label, fieldId: field.id });
       }
     }
   });

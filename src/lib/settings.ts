@@ -13,6 +13,8 @@ export type Settings = {
   aiReview: boolean;
   /** the AI leader signs badges off once every task is done */
   aiSignOff: boolean;
+  /** the AI leader checks self-check tasks when they're finished, and sends back ones clearly not done */
+  aiCheckSelf: boolean;
   /** let the AI leader approve tasks a leader would normally watch or receive in person */
   aiApproveInPerson: boolean;
 };
@@ -24,6 +26,7 @@ export const DEFAULT_SETTINGS: Settings = {
   groupJid: "",
   aiReview: true,
   aiSignOff: true,
+  aiCheckSelf: true,
   aiApproveInPerson: false,
 };
 

@@ -54,6 +54,7 @@ export function MessageSim({
   preview,
   uploadConfig,
   onUploaded,
+  onAvailable,
 }: {
   def: SimulateDef;
   badgeId: string;
@@ -68,6 +69,8 @@ export function MessageSim({
   uploadConfig: UploadConfig;
   /** a video message was uploaded into a field */
   onUploaded: (fieldId: string, upload: RecordedUpload) => void;
+  /** tells the page whether the pretend inbox / phone is working here */
+  onAvailable?: (available: boolean) => void;
 }) {
   const router = useRouter();
   const [available, setAvailable] = useState<boolean | null>(preview ? true : null);
@@ -84,14 +87,23 @@ export function MessageSim({
   const [picked, setPicked] = useState<Kind | null>(def.kind === "either" ? chosenFromAnswers : def.kind);
   const kind: Kind | null = sim?.kind ?? picked;
 
+  const reportAvailable = useRef(onAvailable);
   useEffect(() => {
-    if (preview) return;
+    reportAvailable.current = onAvailable;
+  }, [onAvailable]);
+
+  useEffect(() => {
+    if (preview) {
+      reportAvailable.current?.(true);
+      return;
+    }
     let stop = false;
     fetch(`/api/sim?badgeId=${encodeURIComponent(badgeId)}&taskId=${encodeURIComponent(taskId)}&step=${step}`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then(async (data: { available: boolean; sim: Sim | null } | null) => {
         if (stop || !data) return;
         setAvailable(data.available);
+        reportAvailable.current?.(data.available);
         setSim(data.sim);
         // Only one kind (email or phone)? Open it straight away.
         if (data.available && !data.sim && def.kind !== "either" && !locked) {
@@ -172,6 +184,33 @@ export function MessageSim({
   if (available === false) return null;
   if (locked && !sim) return null;
 
+  // In the leaders' preview there's no conversation, so show Akela's first message.
+  const shown: Sim | null =
+    sim ??
+    (preview && kind
+      ? {
+          kind,
+          status: "chatting",
+          messages: [
+            kind === "email"
+              ? {
+                  role: "ai",
+                  subject: "Welcome to PG Mail! 👋",
+                  text: `Hi ${firstName},\n\nThis is a pretend email inbox for practising. Press "Compose" to write me an email, then press Send. I'll write back!\n\nAkela (AI leader) 🤖`,
+                  at: "2026-10-17T09:00:00.000Z",
+                }
+              : {
+                  role: "ai",
+                  text:
+                    kind === "video"
+                      ? `Hi ${firstName}! 👋 It's Akela. Record a short video message for me and press send.`
+                      : `Hi ${firstName}! 👋 It's Akela, the AI leader. Send me a text!`,
+                  at: "2026-10-17T09:00:00.000Z",
+                },
+          ],
+        }
+      : null);
+
   const prefill = {
     subject: def.fills?.subject ? String(answers[def.fills.subject] ?? "") : "",
     body: def.fills?.body && !def.speedTest ? String(answers[def.fills.body] ?? "") : "",
@@ -205,14 +244,14 @@ export function MessageSim({
       )}
 
       {kind === "email" && (
-        <EmailApp sim={sim} busy={busy} firstName={firstName} def={def} prefill={prefill} onSend={send} disabled={locked || preview} />
+        <EmailApp sim={shown} busy={busy} firstName={firstName} def={def} prefill={prefill} onSend={send} disabled={locked || preview} />
       )}
       {kind === "sms" && (
-        <PhoneApp sim={sim} busy={busy} def={def} prefill={prefill.body} planned={planned} onSend={send} disabled={locked || preview} />
+        <PhoneApp sim={shown} busy={busy} def={def} prefill={prefill.body} planned={planned} onSend={send} disabled={locked || preview} />
       )}
       {kind === "video" && (
         <VideoPhone
-          sim={sim}
+          sim={shown}
           busy={busy}
           maxSeconds={def.video?.maxSeconds ?? 60}
           onSend={sendVideo}
@@ -390,7 +429,7 @@ function EmailApp({
                       <span className="min-w-0 flex-1">
                         <span className={cn("flex justify-between gap-2 text-sm", isUnread ? "font-black" : "font-semibold")}>
                           <span className="truncate">{m.role === "ai" ? AKELA.name : `To: ${AKELA.name}`}</span>
-                          <span className="shrink-0 text-xs font-normal text-muted">{clock(m.at)}</span>
+                          <span className="shrink-0 text-xs font-normal text-muted" suppressHydrationWarning>{clock(m.at)}</span>
                         </span>
                         <span className={cn("block truncate text-sm", isUnread ? "font-bold" : "")}>{m.subject || "(no subject)"}</span>
                         <span className="block truncate text-xs text-muted">{m.text.replace(/\s+/g, " ")}</span>
@@ -530,7 +569,7 @@ function PhoneApp({
       <div className="w-[min(20rem,100%)] shrink-0 rounded-[2.6rem] bg-zinc-900 p-2.5 shadow-lift">
         <div className="relative flex h-[34rem] flex-col overflow-hidden rounded-[2.1rem] bg-white">
           <div className="flex items-center justify-between px-6 pb-1 pt-3 text-xs font-bold">
-            <span>{new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+            <span suppressHydrationWarning>{new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
             <span className="absolute left-1/2 top-2 h-6 w-24 -translate-x-1/2 rounded-full bg-zinc-900" aria-hidden />
             <span className="flex items-center gap-1">
               <Signal className="size-3.5" /> <Wifi className="size-3.5" /> <BatteryFull className="size-4" />
@@ -757,7 +796,9 @@ function VideoPhone({
       <div className="w-[min(20rem,100%)] shrink-0 rounded-[2.6rem] bg-zinc-900 p-2.5 shadow-lift">
         <div className="relative flex h-[34rem] flex-col overflow-hidden rounded-[2.1rem] bg-white">
           <div className="relative z-20 flex items-center justify-between px-6 pb-1 pt-3 text-xs font-bold">
-            <span className={cn(mode !== "chat" && "text-white")}>{new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+            <span className={cn(mode !== "chat" && "text-white")} suppressHydrationWarning>
+              {new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+            </span>
             <span className="absolute left-1/2 top-2 h-6 w-24 -translate-x-1/2 rounded-full bg-zinc-900" aria-hidden />
             <span className={cn("flex items-center gap-1", mode !== "chat" && "text-white")}>
               <Signal className="size-3.5" /> <Wifi className="size-3.5" /> <BatteryFull className="size-4" />

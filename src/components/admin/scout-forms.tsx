@@ -210,6 +210,10 @@ export function SettingsForm({ settings, ai }: { settings: Settings; ai: { revie
           Approves work that clearly meets the requirement, sends back work that clearly isn&apos;t finished (with kind, specific
           feedback), and leaves anything unclear, worrying or containing personal details for you.
         </Toggle>
+        <Toggle name="aiCheckSelf" checked={settings.aiCheckSelf} disabled={!ai.reviewer} title="Check self-check tasks as they're finished">
+          As soon as a young person finishes a &quot;you tick this off&quot; task, the AI checks it was done properly. If it clearly
+          wasn&apos;t (blank, nonsense, or personal details), it goes back to them with feedback; otherwise it stays done.
+        </Toggle>
         <Toggle name="aiSignOff" checked={settings.aiSignOff} disabled={!ai.reviewer} title="Sign badges off when every task is done">
           Checks the self-check tasks were done properly, then signs the badge off. If one clearly wasn&apos;t done, it reopens it
           with feedback.

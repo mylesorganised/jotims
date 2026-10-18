@@ -95,6 +95,31 @@ export type StepDef = {
   explain?: ExplainDef;
   /** a pretend email inbox or phone, where they send a message to the AI leader */
   simulate?: SimulateDef;
+  /** a pretend Morse machine they send their message on; it reads it back and checks it */
+  morseMachine?: MorseMachineDef;
+};
+
+/** How long the Morse machine waits: slow suits Beavers, fast suits confident senders. */
+export type MachineSpeed = "slow" | "medium" | "fast";
+
+/**
+ * A pretend Morse machine: they tap their message out on a key and hear it as
+ * they go, then the machine reads it back, checks it against the message they
+ * planned and helps them fix any letters. What it heard goes in `fills`.
+ */
+export type MorseMachineDef = {
+  /** the message to send: one of their answers, or their first name */
+  message: { field: string } | "first-name";
+  /** only use the machine if they picked this (e.g. Morse code rather than semaphore) */
+  when?: { field: string; equals: string };
+  /** the answer box the machine fills in (never shown to the young person) */
+  fills: string;
+  /** how the machine starts out (they can change it) */
+  speed?: MachineSpeed;
+  /** a sending speed to aim for, in words a minute */
+  minWpm?: number;
+  /** fields on this step only needed if they send it to a real person instead */
+  manualOnly?: string[];
 };
 
 /**
@@ -119,6 +144,8 @@ export type SimulateDef = {
   speedTest?: { minWords: number; minWpm: number };
   /** a video message: the upload field it's saved to, and the longest recording allowed */
   video?: { field: string; maxSeconds: number };
+  /** fields on this step only needed if they send a real message instead (e.g. a proof photo) */
+  manualOnly?: string[];
 };
 
 /** An "explain it to a leader" step that can be done as a chat with the AI leader. */

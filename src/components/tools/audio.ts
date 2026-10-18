@@ -71,3 +71,31 @@ export function playMorse(morse: string, onChange: (e: MorseEvent | null) => voi
     onChange(null);
   };
 }
+
+/** A tone that sounds for as long as a Morse key is held down. */
+export function keyTone(freq = 650) {
+  const a = audio();
+  const osc = a.createOscillator();
+  const gain = a.createGain();
+  osc.frequency.value = freq;
+  gain.gain.value = 0;
+  osc.connect(gain).connect(a.destination);
+  osc.start();
+  const ramp = (to: number) => {
+    if (a.state === "suspended") void a.resume();
+    const t = a.currentTime;
+    gain.gain.cancelScheduledValues(t);
+    gain.gain.setValueAtTime(gain.gain.value, t);
+    gain.gain.linearRampToValueAtTime(to, t + 0.006);
+  };
+  return {
+    down: () => ramp(0.25),
+    up: () => ramp(0),
+    close: () => {
+      try {
+        osc.stop();
+        osc.disconnect();
+      } catch {}
+    },
+  };
+}
